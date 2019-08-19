@@ -1,5 +1,5 @@
 import hashlib
-from eureHausaufgabenApp.views import crypto_util
+from eureHausaufgabenApp.util import crypto_util
 from flask import request, g
 import binascii
 from datetime import datetime
@@ -7,6 +7,7 @@ from datetime import timedelta
 import json
 from eureHausaufgabenApp import db
 from eureHausaufgabenApp.models import Users
+from eureHausaufgabenApp.models import Schools
 
 def login(email, hashed_pwd, secret_key):
     user = Users.query.filter_by(Email=email).first()
@@ -42,10 +43,10 @@ def gen_new_session(check_pwd_hash, email, secret_key, user):
     pwd_and_email = check_pwd_hash+email
     random_string = crypto_util.random_string(30)
     real_ip = request.environ.get('HTTP_X_REAL_IP', request.remote_addr)
-    session_id = crypto_util.hash(pwd_and_email+random_string)
+    session_id = crypto_util.hash(pwd_and_email + random_string)
     nonce = crypto_util.random_string(30)
     store_new_session_nonce(user, nonce)
-    expires = save_session(user, crypto_util.hash(session_id+real_ip+nonce))
+    expires = save_session(user, crypto_util.hash(session_id + real_ip + nonce))
     key = str(secret_key)
     key = key.encode()
     key = hashlib.sha256(key).digest()
@@ -144,13 +145,14 @@ def pop_session(user):
     db.session.commit()
 
 
-def create_user(email, name, hashed_pwd, salt):
+def create_user(email, name, school_name, school_class, hashed_pwd, salt):
 
+    school= Schools.query.filter_by(Name=school_name).first()
     email_allready_used = Users.query.filter_by(Email=email).first()
     name_allready_used = Users.query.filter_by(Username=name).first()
 
-    if email_allready_used == None and name_allready_used == None and crypto_util.check_if_hash(hashed_pwd):
-        user = Users(Email=email, HashedPwd=hashed_pwd, Username=name, Salt=salt, Role=0)
+    if school != None and email_allready_used == None and name_allready_used == None and crypto_util.check_if_hash(hashed_pwd):
+        user = Users(Email=email, HashedPwd=hashed_pwd, Username=name, School=school_name, SchoolClass=school_class, Salt=salt, Role=0)
         db.session.add(user)
         db.session.commit()
         return json.dumps({"User-created" : True}), 200

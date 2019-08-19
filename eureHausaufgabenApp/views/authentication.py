@@ -1,5 +1,5 @@
 from flask import Blueprint, request, g
-from . import db_auth
+from eureHausaufgabenApp.DB import db_auth
 from eureHausaufgabenApp import app
 import json
 
@@ -48,13 +48,16 @@ def sign_in():
         try:
             data = request.get_json()
             name = str(data["name"])
+            school = str(data["school"]).lower().replace(" ", "-").replace("_", "-")
+            school_class = str(data["school_class"]).upper()
             email = str(data["email"])
             hashed_password = str(data["hashedpwd"])
             salt = str(data["salt"])
-            res, error_code = db_auth.create_user(email, name, hashed_password, salt)
+            res, error_code = db_auth.create_user(email, name, school, school_class, hashed_password, salt)
 
             return str(res), error_code
         except Exception as e:
+            raise e
             print("Sign in : " + str(e))
             return "Bad Request", 400
     else:
