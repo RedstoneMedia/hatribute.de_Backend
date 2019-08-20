@@ -42,10 +42,11 @@ def gen_new_session(check_pwd_hash, email, secret_key, user):
     pwd_and_email = check_pwd_hash+email
     random_string = crypto_util.random_string(30)
     real_ip = request.environ.get('HTTP_X_REAL_IP', request.remote_addr)
+    normal_ip = request.environ.get('REMOTE_ADDR', request.remote_addr)
     session_id = crypto_util.hash(pwd_and_email + random_string)
     nonce = crypto_util.random_string(30)
     store_new_session_nonce(user, nonce)
-    expires = save_session(user, crypto_util.hash(session_id + real_ip + nonce))
+    expires = save_session(user, crypto_util.hash(session_id + real_ip + normal_ip + nonce))
     key = str(secret_key)
     key = key.encode()
     key = hashlib.sha256(key).digest()
@@ -119,7 +120,8 @@ def check_session(secret_key, enc_session):
         return False, {"session": {"right": False}}, None
 
     real_ip = request.environ.get('HTTP_X_REAL_IP', request.remote_addr)
-    session = crypto_util.hash(session_id + real_ip + session_nonce)
+    normal_ip = request.environ.get('REMOTE_ADDR', request.remote_addr)
+    session = crypto_util.hash(session_id + real_ip + normal_ip + session_nonce)
 
     user = Users.query.filter_by(HashedSessionID=session).first()
     if user:
@@ -146,6 +148,7 @@ def check_session(secret_key, enc_session):
 def pop_session(user):
     user.HashedSessionID = None
     user.SessionExpires = None
+    user.SessionNonce = None
     db.session.add(user)
     db.session.commit()
 
