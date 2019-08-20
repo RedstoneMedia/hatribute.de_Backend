@@ -38,7 +38,6 @@ def login(email, hashed_pwd, secret_key):
         print("wrong pwd")
         return {"right": False}, 401
 
-
 def gen_new_session(check_pwd_hash, email, secret_key, user):
     pwd_and_email = check_pwd_hash+email
     random_string = crypto_util.random_string(30)
@@ -77,6 +76,12 @@ def get_user_data():
         "role": user.Role
     }
     g.session_data = session_data
+
+
+def logout():
+    user = g.user
+    pop_session(user)
+
 
 def get_salt_by_email(email):
     user = Users.query.filter_by(Email=email).first()

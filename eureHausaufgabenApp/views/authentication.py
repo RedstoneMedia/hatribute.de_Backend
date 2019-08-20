@@ -42,6 +42,21 @@ def login():
         return str("Unsupported Media Type ! Forgot mime type application/json header ?"), 406
 
 
+@authentication.route("/logout", methods=['POST'])
+def logout():
+    if request.is_json:
+        data = request.get_json()
+        before_request(data)
+        if g.user:
+            db_auth.logout()
+            return_data, error_code = json.dumps(g.session_data), 200
+        else:
+            return_data, error_code = json.dumps(g.session_data), 400
+        return str(return_data), error_code
+    else:
+        return str("Unsupported Media Type ! Forgot mime type application/json header ?"), 406
+
+
 @authentication.route("/sign-in", methods=['POST'])
 def sign_in():
     if request.is_json:
@@ -57,7 +72,6 @@ def sign_in():
 
             return str(res), error_code
         except Exception as e:
-            raise e
             print("Sign in : " + str(e))
             return "Bad Request", 400
     else:
