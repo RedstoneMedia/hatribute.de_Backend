@@ -49,9 +49,24 @@ def logout():
         before_request(data)
         if g.user:
             db_auth.logout()
-            return_data, error_code = json.dumps(g.session_data), 200
+            return_data, error_code = json.dumps(g.data), 200
         else:
-            return_data, error_code = json.dumps(g.session_data), 400
+            return_data, error_code = json.dumps(g.data), 400
+        return str(return_data), error_code
+    else:
+        return str("Unsupported Media Type ! Forgot mime type application/json header ?"), 406
+
+
+@authentication.route("/delete_account", methods=['POST'])
+def delete_account():
+    if request.is_json:
+        data = request.get_json()
+        before_request(data)
+        if g.user:
+            db_auth.delete_account()
+            return_data, error_code = json.dumps(g.data), 200
+        else:
+            return_data, error_code = json.dumps(g.data), 400
         return str(return_data), error_code
     else:
         return str("Unsupported Media Type ! Forgot mime type application/json header ?"), 406
@@ -84,9 +99,9 @@ def check_session():
         data = request.get_json()
         before_request(data)
         if g.user:
-            return_data, error_code = json.dumps(g.session_data), 200
+            return_data, error_code = json.dumps(g.data), 200
         else:
-            return_data, error_code = json.dumps(g.session_data), 400
+            return_data, error_code = json.dumps(g.data), 400
         return str(return_data), error_code
     else:
         return str("Unsupported Media Type ! Forgot mime type application/json header ?"), 406
@@ -99,9 +114,9 @@ def get_data():
         before_request(data)
         if g.user:
             db_auth.get_user_data()
-            return_data, error_code = json.dumps(g.session_data), 200
+            return_data, error_code = json.dumps(g.data), 200
         else:
-            return_data, error_code = json.dumps(g.session_data), 400
+            return_data, error_code = json.dumps(g.data), 400
         return str(return_data), error_code
     else:
         return str("Unsupported Media Type ! Forgot mime type application/json header ?"), 406
@@ -112,9 +127,9 @@ def before_request(data):
         other, s_data, user_when_expired = db_auth.check_session(app.config["secret-key"], session)
     except Exception as e:
         g.user = None
-        g.session_data = None
+        g.data = None
         return False
-    g.session_data = s_data
+    g.data = s_data
     if other:
         print("right session data : " + str(other.Email))
         g.user = other

@@ -71,17 +71,22 @@ def store_new_session_nonce(user, nonce):
 
 def get_user_data():
     user = g.user
-    session_data = g.session_data
+    session_data = g.data
     session_data["user"] = {
         "name": str(user.Username),
         "role": user.Role
     }
-    g.session_data = session_data
+    g.data = session_data
 
 
 def logout():
     user = g.user
     pop_session(user)
+
+
+def delete_account():
+    db.session.delete(g.user)
+    db.session.commit()
 
 
 def get_salt_by_email(email):
@@ -131,6 +136,7 @@ def check_session(secret_key, enc_session):
 
             if now >= expires:
                 return False, {"session": {"right": False}}, user
+
             else:
                 new_session = gen_new_session(user.HashedPwd, user.Email, secret_key, user)
                 data = {
