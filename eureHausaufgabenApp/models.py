@@ -13,7 +13,28 @@ class Users(db.Model):
     SessionExpires = db.Column(db.String(200))
     SessionNonce = db.Column(db.String(200))
 
-
 class Schools(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     Name = db.Column(db.String(200))
+
+
+class SchoolClasses(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    ClassName = db.Column(db.String(200))
+    SchoolId = db.Column(db.Integer)
+
+
+class HomeworkLists(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    Exercise = db.Column(db.String(800))
+    DonePercentage = db.Column(db.Integer)
+    Due = db.Column(db.Date)
+    SchoolClassId = db.Column(db.Integer)
+
+
+class SubHomeworkLists(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    Exercise = db.Column(db.String(3))
+    UserId = db.Column(db.Integer)
+    Done = db.Column(db.Boolean(create_constraint=False))
+    HomeworkListId = db.Column(db.Integer)

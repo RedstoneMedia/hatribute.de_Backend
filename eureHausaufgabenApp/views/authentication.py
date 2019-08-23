@@ -1,7 +1,11 @@
 from flask import Blueprint, request, g
+
+import eureHausaufgabenApp.DB.db_user
 from eureHausaufgabenApp.DB import db_auth
 from eureHausaufgabenApp import app
 import json
+
+from eureHausaufgabenApp.DB.db_auth import before_request
 
 authentication = Blueprint('authentication', __name__)
 
@@ -83,8 +87,7 @@ def sign_in():
             email = str(data["email"])
             hashed_password = str(data["hashedpwd"])
             salt = str(data["salt"])
-            res, error_code = db_auth.create_user(email, name, school, school_class, hashed_password, salt)
-
+            res, error_code = eureHausaufgabenApp.DB.db_user.create_user(email, name, school, school_class, hashed_password, salt)
             return str(res), error_code
         except Exception as e:
             print("Sign in : " + str(e))
@@ -113,31 +116,10 @@ def get_data():
         data = request.get_json()
         before_request(data)
         if g.user:
-            db_auth.get_user_data()
+            eureHausaufgabenApp.DB.db_user.get_user_data()
             return_data, error_code = json.dumps(g.data), 200
         else:
             return_data, error_code = json.dumps(g.data), 400
         return str(return_data), error_code
     else:
         return str("Unsupported Media Type ! Forgot mime type application/json header ?"), 406
-
-def before_request(data):
-    try:
-        session = data["session"]
-        other, s_data, user_when_expired = db_auth.check_session(app.config["secret-key"], session)
-    except Exception as e:
-        g.user = None
-        g.data = None
-        return False
-    g.data = s_data
-    if other:
-        print("right session data : " + str(other.Email))
-        g.user = other
-    else:
-        if user_when_expired:
-            db_auth.pop_session(user_when_expired)
-            print("session expired")
-            g.user = None
-        else:
-            print("session wrong")
-            g.user = None

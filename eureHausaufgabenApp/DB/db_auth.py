@@ -5,9 +5,9 @@ import binascii
 from datetime import datetime
 from datetime import timedelta
 import json
-from eureHausaufgabenApp import db
+from eureHausaufgabenApp import db, app
 from eureHausaufgabenApp.models import Users
-from eureHausaufgabenApp.models import Schools
+
 
 def login(email, hashed_pwd, secret_key):
     user = Users.query.filter_by(Email=email).first()
@@ -67,16 +67,6 @@ def store_new_session_nonce(user, nonce):
     user.SessionNonce = nonce
     db.session.add(user)
     db.session.commit()
-
-
-def get_user_data():
-    user = g.user
-    session_data = g.data
-    session_data["user"] = {
-        "name": str(user.Username),
-        "role": user.Role
-    }
-    g.data = session_data
 
 
 def logout():
@@ -159,16 +149,23 @@ def pop_session(user):
     db.session.commit()
 
 
-def create_user(email, name, school_name, school_class, hashed_pwd, salt):
-
-    school= Schools.query.filter_by(Name=school_name).first()
-    email_allready_used = Users.query.filter_by(Email=email).first()
-    name_allready_used = Users.query.filter_by(Username=name).first()
-
-    if school != None and email_allready_used == None and name_allready_used == None and crypto_util.check_if_hash(hashed_pwd):
-        user = Users(Email=email, HashedPwd=hashed_pwd, Username=name, School=school_name, SchoolClass=school_class, Salt=salt, Role=0)
-        db.session.add(user)
-        db.session.commit()
-        return json.dumps({"User-created" : True}), 200
+def before_request(data):
+    try:
+        session = data["session"]
+        other, s_data, user_when_expired = check_session(app.config["secret-key"], session)
+    except Exception as e:
+        g.user = None
+        g.data = None
+        return False
+    g.data = s_data
+    if other:
+        print("right session data : " + str(other.Email))
+        g.user = other
     else:
-        return "Forbidden", 403
+        if user_when_expired:
+            pop_session(user_when_expired)
+            print("session expired")
+            g.user = None
+        else:
+            print("session wrong")
+            g.user = None
