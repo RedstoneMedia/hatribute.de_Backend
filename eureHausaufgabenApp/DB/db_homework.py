@@ -55,17 +55,30 @@ def add_homework(exercise, subject, sub_exercises):
     return 200
 
 
-def register_user_for_sub_homework(homework_id, sub_homework_id):
+def get_sub_homework_from_ids(homework_id, sub_homework_id):
     homework = HomeworkLists.query.filter_by(id=homework_id).first()
     if homework.id == get_school_class_by_user().id:  # check if user is in right class
         sub_homework = SubHomeworkLists.query.filter_by(id=sub_homework_id).first()
         if sub_homework.HomeworkListId == homework.id:
-            sub_homework.UserId = g.user.id
-            db.session.commit()
-            return 200
+            return sub_homework
 
+
+def register_user_for_sub_homework(homework_id, sub_homework_id):
+    sub_homework = get_sub_homework_from_ids(homework_id, sub_homework_id)
+    if sub_homework:
+        sub_homework.UserId = g.user.id
+        db.session.commit()
+        return 200
     return 401
 
+
+def de_register_user_for_sub_homework(homework_id, sub_homework_id):
+    sub_homework = get_sub_homework_from_ids(homework_id, sub_homework_id)
+    if sub_homework:
+        sub_homework.UserId = None
+        db.session.commit()
+        return 200
+    return 401
 
 
 from .db_school import get_school_class_by_user, school_class_to_dict
