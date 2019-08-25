@@ -4,6 +4,11 @@ from PIL import Image
 from base64 import decodebytes
 
 
+def get_image_count_in_sub_folder(sub_folder):
+    folder_path = "Homework\\{}".format(sub_folder)
+    return len([name for name in os.listdir(folder_path) if os.path.isfile(os.path.join(folder_path, name))])
+
+
 def save_images_in_sub_folder(images, sub_folder):
     folder_path = "Homework\\{}".format(sub_folder)
     if os.path.isdir(folder_path):
