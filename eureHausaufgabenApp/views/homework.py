@@ -19,3 +19,34 @@ def get_homework_data():
         return str(return_data), error_code
     else:
         return str("Unsupported Media Type ! Forgot mime type application/json header ?"), 406
+
+
+@homework.route("/add_homework", methods=['POST'])
+def add_homework():
+    if request.is_json:
+        data = request.get_json()
+        before_request(data)
+        if g.user:
+            error_code = db_homework.add_homework(data["exercise"], data["subject"], data["subExercises"])
+            return_data = json.dumps(g.data)
+        else:
+            return_data, error_code = json.dumps(g.data), 400
+        return str(return_data), error_code
+    else:
+        return str("Unsupported Media Type ! Forgot mime type application/json header ?"), 406
+
+
+@homework.route("/register_for_sub_homework", methods=['POST'])
+def register_for_sub_homework():
+    if request.is_json:
+        data = request.get_json()
+        before_request(data)
+        if g.user:
+            error_code = db_homework.register_user_for_sub_homework(data["homework_id"], data["sub_homework_id"])
+            return_data = json.dumps(g.data)
+        else:
+            return_data, error_code = json.dumps(g.data), 400
+        return str(return_data), error_code
+    else:
+        return str("Unsupported Media Type ! Forgot mime type application/json header ?"), 406
+

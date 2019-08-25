@@ -29,6 +29,7 @@ class HomeworkLists(db.Model):
     Exercise = db.Column(db.String(800))
     DonePercentage = db.Column(db.Integer)
     Due = db.Column(db.Date)
+    Subject = db.Column(db.String(20))
     SchoolClassId = db.Column(db.Integer)
 
 

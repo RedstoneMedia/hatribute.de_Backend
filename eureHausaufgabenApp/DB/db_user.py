@@ -15,10 +15,15 @@ def get_user_data():
 
 
 def user_to_dict(user):
-    return {
-    "name": str(user.Username),
-    "role": user.Role
-}
+    if user == None:
+        return {
+            "name": None,
+            "role": None
+        }
+    return  {
+        "name": str(user.Username),
+        "role": user.Role
+    }
 
 
 def create_user(email, name, school_name, school_class, hashed_pwd, salt):
