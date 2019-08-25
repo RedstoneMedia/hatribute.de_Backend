@@ -103,6 +103,5 @@ def get_sub_homework_image():
         image_dir = db_homework.get_homework_image_dir(data["sub_homework_id"])
         return send_from_directory(image_dir, "{}.png".format(data["image_count"]), mimetype='png'), 200
     except Exception as e:
-        raise e
         print("Exception in get_image() : " + str(e))
         return "Bad Request", 400
