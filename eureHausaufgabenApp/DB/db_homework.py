@@ -1,6 +1,9 @@
 from flask import request, g
 from datetime import date
 import json
+
+from eureHausaufgabenApp.util import file_util
+
 from .db_user import user_to_dict
 from eureHausaufgabenApp import db, app
 from eureHausaufgabenApp.models import SubHomeworkLists
@@ -79,6 +82,17 @@ def de_register_user_for_sub_homework(homework_id, sub_homework_id):
         db.session.commit()
         return 200
     return 401
+
+
+def upload_sub_homework(homework_id, sub_homework_id, files):
+    sub_homework = get_sub_homework_from_ids(homework_id, sub_homework_id)
+    if sub_homework:
+        file_util.save_images_in_sub_folder(files, "{}-{}".format(homework_id, sub_homework.id))
+        sub_homework.Done = True
+        db.session.commit()
+        return 200
+    return 401
+
 
 
 from .db_school import get_school_class_by_user, school_class_to_dict
