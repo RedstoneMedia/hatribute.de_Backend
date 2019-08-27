@@ -84,11 +84,26 @@ def de_register_user_for_sub_homework(homework_id, sub_homework_id):
     return 401
 
 
+def get_all_sub_homework_by_sub_homework(sub_homework):
+    return SubHomeworkLists.query.filter_by(HomeworkListId=sub_homework.HomeworkListId)
+
+
+
 def upload_sub_homework(homework_id, sub_homework_id, files):
     sub_homework = get_sub_homework_from_ids(homework_id, sub_homework_id)
     if sub_homework:
         file_util.save_images_in_sub_folder(files, "{}-{}".format(homework_id, sub_homework.id))
+
+        done_count = 0
+        items_count = 0
         sub_homework.Done = True
+        sub_homework_items = get_all_sub_homework_by_sub_homework(sub_homework)
+        for i in sub_homework_items:
+            items_count += 1
+            if i.Done:
+                done_count += 1
+        homework = HomeworkLists.query.filter_by(id=homework_id).first()
+        homework.DonePercentage = round((done_count / items_count) * 100)
         db.session.commit()
         return 200
     return 401
