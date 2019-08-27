@@ -60,7 +60,7 @@ def add_homework(exercise, subject, sub_exercises):
 
 def get_sub_homework_from_ids(homework_id, sub_homework_id):
     homework = HomeworkLists.query.filter_by(id=homework_id).first()
-    if homework.id == get_school_class_by_user().id:  # check if user is in right class
+    if homework.SchoolClassId == get_school_class_by_user().id:  # check if user is in right class
         sub_homework = SubHomeworkLists.query.filter_by(id=sub_homework_id).first()
         if sub_homework.HomeworkListId == homework.id:
             return sub_homework
@@ -94,18 +94,13 @@ def upload_sub_homework(homework_id, sub_homework_id, files):
     return 401
 
 
-def get_sub_homework_image_count(homework_id, sub_homework_id):
+def get_sub_homework_images_as_base64(homework_id, sub_homework_id):
     sub_homework = get_sub_homework_from_ids(homework_id, sub_homework_id)
     if sub_homework:
-        g.data["image_count"] = file_util.get_image_count_in_sub_folder("{}-{}".format(homework_id, sub_homework.id))
-        db.session.commit()
+        sub_folder = "Homework\\{}-{}".format(sub_homework.HomeworkListId, sub_homework.id)
+        g.data["base64_images"] = file_util.get_images_in_sub_folder_as_base64(sub_folder)
         return 200
     return 401
-
-
-def get_homework_image_dir(sub_homework_id):
-    sub_homework = SubHomeworkLists.query.filter_by(id=sub_homework_id).first()
-    return "..\\Homework\\{}-{}".format(sub_homework.HomeworkListId, sub_homework.id)
 
 
 from .db_school import get_school_class_by_user, school_class_to_dict

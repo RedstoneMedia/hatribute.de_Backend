@@ -1,13 +1,27 @@
 import os
 import time
 from PIL import Image
-from base64 import decodebytes
+from base64 import decodebytes, b64encode
 
 
 def get_image_count_in_sub_folder(sub_folder):
-    folder_path = "Homework\\{}".format(sub_folder)
+    folder_path = "{}".format(sub_folder)
     return len([name for name in os.listdir(folder_path) if os.path.isfile(os.path.join(folder_path, name))])
 
+def get_images_in_sub_folder_as_base64(sub_folder):
+    base64_images = []
+    for i in range(get_image_count_in_sub_folder(sub_folder)):
+        base64_images.append(get_base64image_from_path("{}\\{}.png".format(sub_folder, i)))
+    return base64_images
+
+
+
+def get_base64image_from_path(path):
+    with open(path, "rb") as image_file:
+        encoded_string = b64encode(image_file.read())
+    encoded_string = str(encoded_string, encoding="utf-8")
+    encoded_string = "data:image/png;base64, {0:s}".format(encoded_string)
+    return encoded_string
 
 def save_images_in_sub_folder(images, sub_folder):
     folder_path = "Homework\\{}".format(sub_folder)

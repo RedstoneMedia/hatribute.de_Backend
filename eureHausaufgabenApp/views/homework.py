@@ -81,27 +81,16 @@ def upload_sub_homework():
         return str("Unsupported Media Type ! Forgot mime type application/json header ?"), 406
 
 
-@homework.route("/get_sub_homework_image_count", methods=['POST'])
-def get_sub_homework_image_count():
+@homework.route("/get_sub_homework_images",  methods=['POST'])
+def get_sub_homework_images():
     if request.is_json:
         data = request.get_json()
         before_request(data)
         if g.user:
-            error_code = db_homework.get_sub_homework_image_count(data["homework_id"], data["sub_homework_id"])
+            error_code = db_homework.get_sub_homework_images_as_base64(data["homework_id"], data["sub_homework_id"])
             return_data = json.dumps(g.data)
         else:
             return_data, error_code = json.dumps(g.data), 400
         return str(return_data), error_code
     else:
         return str("Unsupported Media Type ! Forgot mime type application/json header ?"), 406
-
-
-@homework.route("/get_sub_homework_image",  methods=['GET'])
-def get_sub_homework_image():
-    try:
-        data = request.args
-        image_dir = db_homework.get_homework_image_dir(data["sub_homework_id"])
-        return send_from_directory(image_dir, "{}.png".format(data["image_count"]), mimetype='png'), 200
-    except Exception as e:
-        print("Exception in get_image() : " + str(e))
-        return "Bad Request", 400
