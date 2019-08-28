@@ -35,7 +35,7 @@ class HomeworkLists(db.Model):
 
 class SubHomeworkLists(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    Exercise = db.Column(db.String(3))
+    Exercise = db.Column(db.String(800))
     UserId = db.Column(db.Integer)
     Done = db.Column(db.Boolean(create_constraint=False))
     HomeworkListId = db.Column(db.Integer)
