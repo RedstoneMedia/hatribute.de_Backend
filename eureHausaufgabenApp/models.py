@@ -7,6 +7,7 @@ class Users(db.Model):
     School = db.Column(db.String(200))
     SchoolClass = db.Column(db.String(200))
     Role = db.Column(db.Integer)
+    Points = db.Column(db.Integer)
     HashedPwd = db.Column(db.String(512))
     Salt = db.Column(db.String(512))
     HashedSessionID = db.Column(db.String(512))
@@ -31,6 +32,12 @@ class HomeworkLists(db.Model):
     Due = db.Column(db.Date)
     Subject = db.Column(db.String(20))
     SchoolClassId = db.Column(db.Integer)
+
+
+class UserViewedHomework(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    UserId = db.Column(db.Integer)
+    HomeworkListId = db.Column(db.Integer)
 
 
 class SubHomeworkLists(db.Model):

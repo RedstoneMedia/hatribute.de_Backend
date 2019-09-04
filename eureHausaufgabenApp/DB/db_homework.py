@@ -9,6 +9,7 @@ from eureHausaufgabenApp import db, app
 from eureHausaufgabenApp.models import SubHomeworkLists
 from eureHausaufgabenApp.models import HomeworkLists
 from eureHausaufgabenApp.models import Users
+from eureHausaufgabenApp.models import UserViewedHomework
 
 def get_school_class_data():
     school_class_dict = get_school_class_dict_by_user()
@@ -31,8 +32,11 @@ def homework_to_dict(homework):
         "Due" : str(homework.Due),
         "Subject" : homework.Subject,
         "SubHomework" : [],
-        "id" : homework.id
+        "id" : homework.id,
+        "Viewed" : False
     }
+    if get_viewed_homework_by_homework_id(homework.id):
+        homework_ret["Viewed"] = True
     sub_homework = SubHomeworkLists.query.filter_by(HomeworkListId=homework.id)
     for i in sub_homework:
         homework_ret["SubHomework"].append(sub_homework_to_dict(i))
@@ -53,9 +57,13 @@ def add_homework(exercise, subject, sub_exercises):
     db.session.add(new_homework_entry)
     db.session.commit()
     for sub_exercise in sub_exercises:
-        db.session.add(SubHomeworkLists(Exercise=sub_exercise, Done=False, HomeworkListId=new_homework_entry.id))#
+        db.session.add(SubHomeworkLists(Exercise=sub_exercise, Done=False, HomeworkListId=new_homework_entry.id))
     db.session.commit()
     return 200
+
+
+def get_viewed_homework_by_homework_id(homework_id):
+    return UserViewedHomework.query.filter_by(HomeworkListId=homework_id, UserId=g.user.id).first()
 
 
 def get_sub_homework_from_ids(homework_id, sub_homework_id):
@@ -88,12 +96,10 @@ def get_all_sub_homework_by_sub_homework(sub_homework):
     return SubHomeworkLists.query.filter_by(HomeworkListId=sub_homework.HomeworkListId)
 
 
-
 def upload_sub_homework(homework_id, sub_homework_id, files):
     sub_homework = get_sub_homework_from_ids(homework_id, sub_homework_id)
     if sub_homework:
         file_util.save_images_in_sub_folder(files, "{}-{}".format(homework_id, sub_homework.id))
-
         done_count = 0
         items_count = 0
         sub_homework.Done = True
@@ -104,14 +110,35 @@ def upload_sub_homework(homework_id, sub_homework_id, files):
                 done_count += 1
         homework = HomeworkLists.query.filter_by(id=homework_id).first()
         homework.DonePercentage = round((done_count / items_count) * 100)
+        if g.user.Role == 0:
+            g.user.Points += 10
+        elif g.user.Role >= 1:
+            g.user.Points += 15
         db.session.commit()
         return 200
     return 401
 
 
+def view_homework(homework_id):
+    if g.user.Points < 5:
+        return False
+    if g.user.Role < 0:
+        return False
+    viewed_homework = UserViewedHomework(UserId=g.user.id, HomeworkListId=homework_id)
+    db.session.add(viewed_homework)
+    if not g.user.Role >= 2:
+        g.user.Points -= 5
+    db.session.commit()
+    return True
+
+
 def get_sub_homework_images_as_base64(homework_id, sub_homework_id):
     sub_homework = get_sub_homework_from_ids(homework_id, sub_homework_id)
     if sub_homework:
+        viewed_homework = get_viewed_homework_by_homework_id(homework_id)
+        if not viewed_homework:
+            if not view_homework(homework_id):
+                return 403
         sub_folder = "Homework\\{}-{}".format(sub_homework.HomeworkListId, sub_homework.id)
         g.data["base64_images"] = file_util.get_images_in_sub_folder_as_base64(sub_folder)
         return 200

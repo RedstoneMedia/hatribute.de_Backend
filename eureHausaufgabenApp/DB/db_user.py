@@ -18,11 +18,13 @@ def user_to_dict(user):
     if user == None:
         return {
             "name": None,
-            "role": None
+            "role": None,
+            "points" : None
         }
     return  {
         "name": str(user.Username),
-        "role": user.Role
+        "role": user.Role,
+        "points" : user.Points
     }
 
 
@@ -33,7 +35,7 @@ def create_user(email, name, school_name, school_class, hashed_pwd, salt):
     name_allready_used = Users.query.filter_by(Username=name).first()
 
     if school != None and email_allready_used == None and name_allready_used == None and crypto_util.check_if_hash(hashed_pwd):
-        user = Users(Email=email, HashedPwd=hashed_pwd, Username=name, School=school_name, SchoolClass=school_class, Salt=salt, Role=0)
+        user = Users(Email=email, HashedPwd=hashed_pwd, Username=name, School=school_name, SchoolClass=school_class, Salt=salt, Role=0, Points=20)
         db.session.add(user)
         db.session.commit()
         return json.dumps({"User-created" : True}), 200
