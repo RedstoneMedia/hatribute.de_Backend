@@ -14,8 +14,6 @@ def get_images_in_sub_folder_as_base64(sub_folder):
         base64_images.append(get_base64image_from_path("{}\\{}.png".format(sub_folder, i)))
     return base64_images
 
-
-
 def get_base64image_from_path(path):
     with open(path, "rb") as image_file:
         encoded_string = b64encode(image_file.read())

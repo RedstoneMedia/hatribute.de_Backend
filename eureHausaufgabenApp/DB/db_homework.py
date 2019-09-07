@@ -3,6 +3,7 @@ from datetime import date
 import json
 
 from eureHausaufgabenApp.util import file_util
+from eureHausaufgabenApp.util import timetable_util
 
 from .db_user import user_to_dict
 from eureHausaufgabenApp import db, app
@@ -53,13 +54,20 @@ def sub_homework_to_dict(sub_homework):
 
 
 def add_homework(exercise, subject, sub_exercises):
-    new_homework_entry = HomeworkLists(Exercise=exercise, DonePercentage=0, Subject=subject, SchoolClassId=get_school_class_by_user().id)
-    db.session.add(new_homework_entry)
-    db.session.commit()
-    for sub_exercise in sub_exercises:
-        db.session.add(SubHomeworkLists(Exercise=sub_exercise, Done=False, HomeworkListId=new_homework_entry.id))
-    db.session.commit()
-    return 200
+    school_class = get_school_class_by_user()
+    if school_class.id:
+        user_school = get_school_by_user()
+        due_string = timetable_util.get_closest_subject_day_string("Timetables\\{}_{}.json".format(user_school.id, school_class.id), subject)
+        print(due_string)
+        new_homework_entry = HomeworkLists(Exercise=exercise, DonePercentage=0, Subject=subject, SchoolClassId=school_class.id, Due=due_string)
+        db.session.add(new_homework_entry)
+        db.session.commit()
+        for sub_exercise in sub_exercises:
+            db.session.add(SubHomeworkLists(Exercise=sub_exercise, Done=False, HomeworkListId=new_homework_entry.id))
+        db.session.commit()
+        return 200
+    else:
+        return 401
 
 
 def get_viewed_homework_by_homework_id(homework_id):
@@ -145,4 +153,28 @@ def get_sub_homework_images_as_base64(homework_id, sub_homework_id):
     return 401
 
 
-from .db_school import get_school_class_by_user, school_class_to_dict
+def get_time_table(units_username, units_password):
+    school_class = get_school_class_by_user()
+    if school_class.id:
+        user_school = get_school_by_user()
+        timetable_util.get_time_table(units_school_name=user_school.UnitsSchoolName, user_name=units_username, user_password=units_password, save_file="Timetables\\{}_{}.json".format(user_school.id, school_class.id))
+        return 200
+    else:
+        return 401
+
+
+def get_time_table_download_info():
+    school_class = get_school_class_by_user()
+    if school_class.id:
+        user_school = get_school_by_user()
+        info = timetable_util.get_time_table_download_info(save_file="Timetables\\{}_{}.json".format(user_school.id, school_class.id))
+        if info == "DONE":
+            g.user.Points += 5
+            db.session.commit()
+        g.data["download_info"] = info
+        return 200
+    else:
+        return 401
+
+
+from .db_school import get_school_class_by_user, school_class_to_dict, get_school_by_user

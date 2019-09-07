@@ -17,6 +17,7 @@ class Users(db.Model):
 class Schools(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     Name = db.Column(db.String(200))
+    UnitsSchoolName = db.Column(db.String(200))
 
 
 class SchoolClasses(db.Model):

@@ -94,3 +94,33 @@ def get_sub_homework_images():
         return str(return_data), error_code
     else:
         return str("Unsupported Media Type ! Forgot mime type application/json header ?"), 406
+
+
+@homework.route("/get_time_table",  methods=['POST'])
+def get_time_table():
+    if request.is_json:
+        data = request.get_json()
+        before_request(data)
+        if g.user:
+            error_code = db_homework.get_time_table(data["units_username"], data["units_password"])
+            return_data = json.dumps(g.data)
+        else:
+            return_data, error_code = json.dumps(g.data), 400
+        return str(return_data), error_code
+    else:
+        return str("Unsupported Media Type ! Forgot mime type application/json header ?"), 406
+
+
+@homework.route("/get_time_table_download_info",  methods=['POST'])
+def get_time_table_download_info():
+    if request.is_json:
+        data = request.get_json()
+        before_request(data)
+        if g.user:
+            error_code = db_homework.get_time_table_download_info()
+            return_data = json.dumps(g.data)
+        else:
+            return_data, error_code = json.dumps(g.data), 400
+        return str(return_data), error_code
+    else:
+        return str("Unsupported Media Type ! Forgot mime type application/json header ?"), 406
