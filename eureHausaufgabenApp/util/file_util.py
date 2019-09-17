@@ -2,11 +2,16 @@ import os
 import time
 from PIL import Image
 from base64 import decodebytes, b64encode
+import shutil
 
+def remove_sub_folder(sub_folder):
+    shutil.rmtree("Homework\\" + sub_folder)
 
 def get_image_count_in_sub_folder(sub_folder):
-    folder_path = "{}".format(sub_folder)
-    return len([name for name in os.listdir(folder_path) if os.path.isfile(os.path.join(folder_path, name))])
+    folder_path = "Homework\\{}".format(sub_folder)
+    if os.path.exists(folder_path):
+        return len([name for name in os.listdir(folder_path) if os.path.isfile(os.path.join(folder_path, name))])
+    return 0
 
 def get_images_in_sub_folder_as_base64(sub_folder):
     base64_images = []

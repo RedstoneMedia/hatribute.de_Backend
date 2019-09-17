@@ -7,6 +7,7 @@ from datetime import timedelta
 import json
 from eureHausaufgabenApp import db, app
 from eureHausaufgabenApp.models import Users
+import time
 
 
 def login(email, hashed_pwd, secret_key):
@@ -42,11 +43,10 @@ def gen_new_session(check_pwd_hash, email, secret_key, user):
     pwd_and_email = check_pwd_hash+email
     random_string = crypto_util.random_string(30)
     real_ip = request.environ.get('HTTP_X_REAL_IP', request.remote_addr)
-    normal_ip = request.environ.get('REMOTE_ADDR', request.remote_addr)
     session_id = crypto_util.hash(pwd_and_email + random_string)
     nonce = crypto_util.random_string(30)
     store_new_session_nonce(user, nonce)
-    expires = save_session(user, crypto_util.hash(session_id + real_ip + normal_ip + nonce))
+    expires = save_session(user, crypto_util.hash(session_id + real_ip + nonce))
     key = str(secret_key)
     key = key.encode()
     key = hashlib.sha256(key).digest()
@@ -115,8 +115,7 @@ def check_session(secret_key, enc_session):
         return False, {"session": {"right": False}}, None
 
     real_ip = request.environ.get('HTTP_X_REAL_IP', request.remote_addr)
-    normal_ip = request.environ.get('REMOTE_ADDR', request.remote_addr)
-    session = crypto_util.hash(session_id + real_ip + normal_ip + session_nonce)
+    session = crypto_util.hash(session_id + real_ip + session_nonce)
 
     user = Users.query.filter_by(HashedSessionID=session).first()
     if user:
@@ -150,6 +149,7 @@ def pop_session(user):
 
 
 def before_request(data):
+
     try:
         session = data["session"]
         other, s_data, user_when_expired = check_session(app.config["secret-key"], session)
