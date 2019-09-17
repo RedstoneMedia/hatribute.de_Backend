@@ -1,4 +1,4 @@
-from flask import Blueprint, request, g, send_from_directory
+from flask import Blueprint, request, g
 import json
 from eureHausaufgabenApp.DB import db_homework
 
@@ -27,7 +27,7 @@ def add_homework():
         data = request.get_json()
         before_request(data)
         if g.user:
-            error_code = db_homework.add_homework(data["exercise"], data["subject"], data["subExercises"])
+            error_code = db_homework.add_homework(data["exercise"], data["subject"], data["subExercises"], data["dueDate"])
             return_data = json.dumps(g.data)
         else:
             return_data, error_code = json.dumps(g.data), 400
@@ -95,7 +95,7 @@ def get_sub_homework_images():
     else:
         return str("Unsupported Media Type ! Forgot mime type application/json header ?"), 406
 
-
+"""
 @homework.route("/get_time_table",  methods=['POST'])
 def get_time_table():
     if request.is_json:
@@ -109,7 +109,9 @@ def get_time_table():
         return str(return_data), error_code
     else:
         return str("Unsupported Media Type ! Forgot mime type application/json header ?"), 406
+"""
 
+"""
 
 @homework.route("/get_time_table_download_info",  methods=['POST'])
 def get_time_table_download_info():
@@ -124,3 +126,4 @@ def get_time_table_download_info():
         return str(return_data), error_code
     else:
         return str("Unsupported Media Type ! Forgot mime type application/json header ?"), 406
+"""

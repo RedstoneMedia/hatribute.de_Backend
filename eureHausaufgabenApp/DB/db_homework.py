@@ -1,9 +1,10 @@
 from flask import request, g
 from datetime import date
 import json
+from datetime import datetime
 
 from eureHausaufgabenApp.util import file_util
-from eureHausaufgabenApp.util import timetable_util
+# from eureHausaufgabenApp.util import timetable_util
 
 from .db_user import user_to_dict
 from eureHausaufgabenApp import db, app
@@ -12,13 +13,26 @@ from eureHausaufgabenApp.models import HomeworkLists
 from eureHausaufgabenApp.models import Users
 from eureHausaufgabenApp.models import UserViewedHomework
 
+
 def get_school_class_data():
+    remove_past_homework()
     school_class_dict = get_school_class_dict_by_user()
     if school_class_dict:
         g.data["school_class"] = school_class_dict
         return 200
     else:
         return 401
+
+
+def remove_past_homework():
+    school_class = get_school_class_by_user()
+    homework_list = HomeworkLists.query.filter_by(SchoolClassId=school_class.id)
+    now = datetime.now().date()
+    for homework in homework_list:
+        if (homework.Due-now).days < 1:
+            db.session.delete(homework)
+            db.session.commit()
+
 
 def get_school_class_dict_by_user():
     school_class = get_school_class_by_user()
@@ -53,13 +67,12 @@ def sub_homework_to_dict(sub_homework):
     }
 
 
-def add_homework(exercise, subject, sub_exercises):
+def add_homework(exercise, subject, sub_exercises, due_date):
     school_class = get_school_class_by_user()
     if school_class.id:
         user_school = get_school_by_user()
-        due_string = timetable_util.get_closest_subject_day_string("Timetables\\{}_{}.json".format(user_school.id, school_class.id), subject)
-        print(due_string)
-        new_homework_entry = HomeworkLists(Exercise=exercise, DonePercentage=0, Subject=subject, SchoolClassId=school_class.id, Due=due_string)
+        due_date = datetime.datetime.strptime(due_date, "%Y-%m-%d")
+        new_homework_entry = HomeworkLists(Exercise=exercise, DonePercentage=0, Subject=subject, SchoolClassId=school_class.id, Due=due_date)
         db.session.add(new_homework_entry)
         db.session.commit()
         for sub_exercise in sub_exercises:
@@ -153,6 +166,7 @@ def get_sub_homework_images_as_base64(homework_id, sub_homework_id):
     return 401
 
 
+"""
 def get_time_table(units_username, units_password):
     school_class = get_school_class_by_user()
     if school_class.id:
@@ -161,7 +175,6 @@ def get_time_table(units_username, units_password):
         return 200
     else:
         return 401
-
 
 def get_time_table_download_info():
     school_class = get_school_class_by_user()
@@ -175,6 +188,6 @@ def get_time_table_download_info():
         return 200
     else:
         return 401
-
+"""
 
 from .db_school import get_school_class_by_user, school_class_to_dict, get_school_by_user

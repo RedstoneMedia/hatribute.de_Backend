@@ -7,9 +7,11 @@ from eureHausaufgabenApp.models import Schools
 from eureHausaufgabenApp.models import SchoolClasses
 from eureHausaufgabenApp.models import HomeworkLists
 
+
 def get_school_by_user():
     school = Schools.query.filter_by(Name=g.user.School).first()
     return school
+
 
 def get_school_class_by_user():
     school = get_school_by_user()
