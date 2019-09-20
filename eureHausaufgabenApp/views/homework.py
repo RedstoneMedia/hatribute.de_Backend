@@ -94,3 +94,19 @@ def get_sub_homework_images():
         return str(return_data), error_code
     else:
         return str("Unsupported Media Type ! Forgot mime type application/json header ?"), 406
+
+
+@homework.route("/delete_homework",  methods=['POST'])
+def delete_homework():
+    if request.is_json:
+        data = request.get_json()
+        before_request(data)
+        if g.user:
+            error_code = db_homework.delete_homework(data["homework_id"])
+            return_data = json.dumps(g.data)
+        else:
+            return_data, error_code = json.dumps(g.data), 400
+        return str(return_data), error_code
+    else:
+        return str("Unsupported Media Type ! Forgot mime type application/json header ?"), 406
+

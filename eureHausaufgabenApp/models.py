@@ -4,8 +4,8 @@ class Users(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     Email = db.Column(db.String(200))
     Username = db.Column(db.String(200))
-    School = db.Column(db.String(200))
-    SchoolClass = db.Column(db.String(200))
+    SchoolId = db.Column(db.Integer)
+    SchoolClassId = db.Column(db.Integer)
     Role = db.Column(db.Integer)
     Points = db.Column(db.Integer)
     HashedPwd = db.Column(db.String(512))
@@ -32,6 +32,7 @@ class HomeworkLists(db.Model):
     DonePercentage = db.Column(db.Integer)
     Due = db.Column(db.Date)
     Subject = db.Column(db.String(20))
+    CreatorId = db.Column(db.Integer)
     SchoolClassId = db.Column(db.Integer)
 
 

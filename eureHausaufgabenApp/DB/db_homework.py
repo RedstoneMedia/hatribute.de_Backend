@@ -23,13 +23,57 @@ def get_school_class_data():
         return 401
 
 
+def check_if_homework_creator(homework):
+    if g.user.id == homework.CreatorId:
+        return True
+    return False
+
+def get_due_string(date : date):
+    now = datetime.now().date()
+    weeks_between = date.isocalendar()[1] - now.isocalendar()[1]
+    if weeks_between == 0:
+        days_between = (date - now).days
+        if -2 <= days_between <= 2:
+            if days_between == -2:
+                return "Vorgestern"
+            elif days_between == -1:
+                return "Gestern"
+            elif days_between == 0:
+                return "Heute"
+            elif days_between == 1:
+                return "Morgen"
+            elif days_between == 2:
+                return "Übermorgen"
+    elif weeks_between <= 1:
+        day_string = ""
+        if weeks_between == 1:
+            day_string = "Nächste Woche "
+
+        if date.weekday() == 0:
+            day_string += "Montag"
+        elif date.weekday() == 1:
+            day_string += "Dienstag"
+        elif date.weekday() == 2:
+            day_string += "Mittwoch"
+        elif date.weekday() == 3:
+            day_string += "Donnerstag"
+        elif date.weekday() == 4:
+            day_string += "Freitag"
+        elif date.weekday() == 5:
+            day_string += "Sammstag ?"
+        elif date.weekday() == 6:
+            day_string += "Sonntag ?"
+        return day_string
+    else:
+        return str(date)
+
+
 def remove_past_homework():
     school_class = get_school_class_by_user()
     homework_list = HomeworkLists.query.filter_by(SchoolClassId=school_class.id)
     now = datetime.now().date()
     for homework in homework_list:
-        print((homework.Due-now).days)
-        if (homework.Due-now).days <= 1:
+        if 0 > (homework.Due-now).days:
             remove_homework(homework)
 
 
@@ -60,7 +104,7 @@ def homework_to_dict(homework):
     homework_ret = {
         "Exercise" : homework.Exercise,
         "DonePercentage" : homework.DonePercentage,
-        "Due" : str(homework.Due),
+        "Due" : get_due_string(homework.Due),
         "Subject" : homework.Subject,
         "SubHomework" : [],
         "id" : homework.id,
@@ -88,7 +132,7 @@ def add_homework(exercise, subject, sub_exercises, due_date):
     if school_class.id:
         user_school = get_school_by_user()
         due_date = datetime.strptime(due_date, "%Y-%m-%d")
-        new_homework_entry = HomeworkLists(Exercise=exercise, DonePercentage=0, Subject=subject, SchoolClassId=school_class.id, Due=due_date)
+        new_homework_entry = HomeworkLists(Exercise=exercise, DonePercentage=0, Subject=subject, SchoolClassId=school_class.id, Due=due_date, CreatorId=g.user.id)
         db.session.add(new_homework_entry)
         db.session.commit()
         for sub_exercise in sub_exercises:
@@ -180,6 +224,23 @@ def get_sub_homework_images_as_base64(homework_id, sub_homework_id):
         g.data["base64_images"] = file_util.get_images_in_sub_folder_as_base64(sub_folder)
         return 200
     return 401
+
+
+def delete_homework(homework_id):
+    homework = HomeworkLists.query.filter_by(id=homework_id)
+    if homework:
+        if homework.SchoolClassId == g.user.SchoolClassId:
+            if check_if_homework_creator(homework):
+                sub_homeworks = SubHomeworkLists.query.filter_by(HomeworkListId=homework.id)
+                for sub_homework in sub_homeworks:
+                    if sub_homework.Done:
+                        return 400
+                delete_homework(homework.id)
+                return 200
+            return 401
+        return 403
+    return 403
+
 
 
 from .db_school import get_school_class_by_user, school_class_to_dict, get_school_by_user

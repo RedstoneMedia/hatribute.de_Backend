@@ -9,7 +9,7 @@ from eureHausaufgabenApp.models import HomeworkLists
 
 
 def get_school_by_user():
-    school = Schools.query.filter_by(Name=g.user.School).first()
+    school = Schools.query.filter_by(id=g.user.SchoolId).first()
     return school
 
 
@@ -18,7 +18,7 @@ def get_school_class_by_user():
     if not school:
         return
 
-    school_class = SchoolClasses.query.filter_by(ClassName=g.user.SchoolClass).first()
+    school_class = SchoolClasses.query.filter_by(id=g.user.SchoolClassId).first()
     if school_class.SchoolId == school.id:
         return school_class
 
