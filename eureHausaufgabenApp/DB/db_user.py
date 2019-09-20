@@ -18,11 +18,13 @@ def get_user_data():
 def user_to_dict(user):
     if user == None:
         return {
+            "id" : None,
             "name": None,
             "role": None,
             "points" : None
         }
     return  {
+        "id" : user.id,
         "name": str(user.Username),
         "role": user.Role,
         "points" : user.Points

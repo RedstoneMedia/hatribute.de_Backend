@@ -1,6 +1,7 @@
 from flask import request, g
 from datetime import date
 import json
+import traceback
 from datetime import datetime
 
 from eureHausaufgabenApp.util import file_util
@@ -107,6 +108,7 @@ def homework_to_dict(homework):
         "Due" : get_due_string(homework.Due),
         "Subject" : homework.Subject,
         "SubHomework" : [],
+        "CreatorId" : homework.CreatorId,
         "id" : homework.id,
         "Viewed" : False
     }
@@ -227,15 +229,21 @@ def get_sub_homework_images_as_base64(homework_id, sub_homework_id):
 
 
 def delete_homework(homework_id):
-    homework = HomeworkLists.query.filter_by(id=homework_id)
+    homework = HomeworkLists.query.filter_by(id=homework_id).first()
     if homework:
-        if homework.SchoolClassId == g.user.SchoolClassId:
+        if g.user.Role >= 2:
+            remove_homework(homework)
+            g.data["success"] = True
+            return 200
+        elif homework.SchoolClassId == g.user.SchoolClassId:
             if check_if_homework_creator(homework):
                 sub_homeworks = SubHomeworkLists.query.filter_by(HomeworkListId=homework.id)
                 for sub_homework in sub_homeworks:
                     if sub_homework.Done:
-                        return 400
-                delete_homework(homework.id)
+                        g.data["success"] = False
+                        return 200
+                remove_homework(homework)
+                g.data["success"] = True
                 return 200
             return 401
         return 403
