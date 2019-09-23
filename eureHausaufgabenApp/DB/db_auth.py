@@ -55,7 +55,7 @@ def gen_new_session(check_pwd_hash, email, secret_key, user):
     return binascii.hexlify(enc).decode("utf-8"), expires
 
 
-def save_session(user, sessionHash, expires=5):
+def save_session(user, sessionHash, expires=10):
     user.HashedSessionID = sessionHash
     user.SessionExpires = str(datetime.now() + timedelta(minutes=expires))
     db.session.add(user)

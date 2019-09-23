@@ -14,5 +14,7 @@ from .models import Users
 db.create_all()
 from .views.authentication import authentication
 from .views.homework import homework
+from .views.modDashboard import modDashboard
 app.register_blueprint(authentication)
 app.register_blueprint(homework)
+app.register_blueprint(modDashboard)

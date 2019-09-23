@@ -16,7 +16,8 @@ def get_image_count_in_sub_folder(sub_folder):
 def get_images_in_sub_folder_as_base64(sub_folder):
     base64_images = []
     for i in range(get_image_count_in_sub_folder(sub_folder)):
-        base64_images.append(get_base64image_from_path("{}\\{}.png".format(sub_folder, i)))
+        folder_path = "Homework\\{}".format(sub_folder)
+        base64_images.append(get_base64image_from_path("{}\\{}.png".format(folder_path, i)))
     return base64_images
 
 def get_base64image_from_path(path):

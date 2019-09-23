@@ -15,6 +15,10 @@ def get_user_data():
     g.data = session_data
 
 
+def get_user_by_id(user_id):
+    return Users.query.filter_by(id=user_id).first()
+
+
 def user_to_dict(user):
     if user == None:
         return {

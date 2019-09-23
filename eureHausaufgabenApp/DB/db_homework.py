@@ -1,12 +1,9 @@
-from flask import request, g
+from flask import g
 from datetime import date
-import json
-import traceback
 from datetime import datetime
 
 from eureHausaufgabenApp.util import file_util
 
-from .db_user import user_to_dict
 from eureHausaufgabenApp import db, app
 from eureHausaufgabenApp.models import SubHomeworkLists
 from eureHausaufgabenApp.models import HomeworkLists
@@ -15,8 +12,11 @@ from eureHausaufgabenApp.models import UserViewedHomework
 
 
 def get_school_class_data():
-    remove_past_homework()
     school_class_dict = get_school_class_dict_by_user()
+    if g.user.Role == -1:
+        g.data["school_class"] = school_class_dict
+        return 200
+    remove_past_homework()
     if school_class_dict:
         g.data["school_class"] = school_class_dict
         return 200
@@ -29,7 +29,10 @@ def check_if_homework_creator(homework):
         return True
     return False
 
+
 def get_due_string(date : date):
+    if g.user.Role == -1:
+        return str(date)
     now = datetime.now().date()
     weeks_between = date.isocalendar()[1] - now.isocalendar()[1]
     if weeks_between == 0:
@@ -125,7 +128,8 @@ def sub_homework_to_dict(sub_homework):
         "Exercise" : sub_homework.Exercise,
         "Done" : sub_homework.Done,
         "User" : user_to_dict(Users.query.filter_by(id=sub_homework.UserId).first()),
-        "id" : sub_homework.id
+        "id" : sub_homework.id,
+        "reported" : has_reported_sub_homework(sub_homework)
     }
 
 
@@ -149,7 +153,7 @@ def get_viewed_homework_by_homework_id(homework_id):
     return UserViewedHomework.query.filter_by(HomeworkListId=homework_id, UserId=g.user.id).first()
 
 
-def get_sub_homework_from_ids(homework_id, sub_homework_id):
+def get_sub_homework_from_id(homework_id, sub_homework_id):
     homework = HomeworkLists.query.filter_by(id=homework_id).first()
     if homework.SchoolClassId == get_school_class_by_user().id:  # check if user is in right class
         sub_homework = SubHomeworkLists.query.filter_by(id=sub_homework_id).first()
@@ -158,7 +162,7 @@ def get_sub_homework_from_ids(homework_id, sub_homework_id):
 
 
 def register_user_for_sub_homework(homework_id, sub_homework_id):
-    sub_homework = get_sub_homework_from_ids(homework_id, sub_homework_id)
+    sub_homework = get_sub_homework_from_id(homework_id, sub_homework_id)
     if sub_homework:
         sub_homework.UserId = g.user.id
         db.session.commit()
@@ -167,10 +171,12 @@ def register_user_for_sub_homework(homework_id, sub_homework_id):
 
 
 def de_register_user_for_sub_homework(homework_id, sub_homework_id):
-    sub_homework = get_sub_homework_from_ids(homework_id, sub_homework_id)
+    sub_homework = get_sub_homework_from_id(homework_id, sub_homework_id)
     if sub_homework:
-        sub_homework.UserId = None
-        db.session.commit()
+        if sub_homework.Done:
+            g.user.Points -= get_sub_homework_add_points()
+            db.session.commit()
+        reset_sub_homework(sub_homework)
         return 200
     return 401
 
@@ -179,8 +185,17 @@ def get_all_sub_homework_by_sub_homework(sub_homework):
     return SubHomeworkLists.query.filter_by(HomeworkListId=sub_homework.HomeworkListId)
 
 
+def get_sub_homework_add_points():
+    points = 0
+    if g.user.Role == 0:
+        points = 10
+    elif g.user.Role >= 1:
+        points = 15
+    return points
+
+
 def upload_sub_homework(homework_id, sub_homework_id, files):
-    sub_homework = get_sub_homework_from_ids(homework_id, sub_homework_id)
+    sub_homework = get_sub_homework_from_id(homework_id, sub_homework_id)
     if sub_homework:
         file_util.save_images_in_sub_folder(files, "{}-{}".format(homework_id, sub_homework.id))
         done_count = 0
@@ -193,16 +208,15 @@ def upload_sub_homework(homework_id, sub_homework_id, files):
                 done_count += 1
         homework = HomeworkLists.query.filter_by(id=homework_id).first()
         homework.DonePercentage = round((done_count / items_count) * 100)
-        if g.user.Role == 0:
-            g.user.Points += 10
-        elif g.user.Role >= 1:
-            g.user.Points += 15
+        g.user.Points += get_sub_homework_add_points()
         db.session.commit()
         return 200
     return 401
 
 
 def view_homework(homework_id):
+    if g.user.Role == -1:
+        return False
     if g.user.Points < 5:
         return False
     if g.user.Role < 0:
@@ -216,13 +230,13 @@ def view_homework(homework_id):
 
 
 def get_sub_homework_images_as_base64(homework_id, sub_homework_id):
-    sub_homework = get_sub_homework_from_ids(homework_id, sub_homework_id)
+    sub_homework = get_sub_homework_from_id(homework_id, sub_homework_id)
     if sub_homework:
         viewed_homework = get_viewed_homework_by_homework_id(homework_id)
         if not viewed_homework:
             if not view_homework(homework_id):
                 return 403
-        sub_folder = "Homework\\{}-{}".format(sub_homework.HomeworkListId, sub_homework.id)
+        sub_folder = "{}-{}".format(sub_homework.HomeworkListId, sub_homework.id)
         g.data["base64_images"] = file_util.get_images_in_sub_folder_as_base64(sub_folder)
         return 200
     return 401
@@ -250,5 +264,16 @@ def delete_homework(homework_id):
     return 403
 
 
+def reset_sub_homework(sub_homework):
+    sub_homework.Done = False
+    sub_homework.UserId = None
+    sub_folder = "{}-{}".format(sub_homework.HomeworkListId, sub_homework.id)
+    count = file_util.get_image_count_in_sub_folder(sub_folder)
+    if count > 0:
+        file_util.remove_sub_folder(sub_folder)
+    db.session.commit()
+
 
 from .db_school import get_school_class_by_user, school_class_to_dict, get_school_by_user
+from .db_mod import has_reported_sub_homework
+from .db_user import user_to_dict
