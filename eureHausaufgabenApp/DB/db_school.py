@@ -13,6 +13,10 @@ def get_school_by_user():
     return school
 
 
+def is_user_in_users_school(user_a, user_b):
+    return user_a.SchoolClassId == user_b.SchoolClassId
+
+
 def get_school_class_by_user():
     school = get_school_by_user()
     if not school:

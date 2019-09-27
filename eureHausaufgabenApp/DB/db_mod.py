@@ -15,27 +15,26 @@ def delete_reports(sub_homework):
 
 def sub_homework_report_execution_remove_points_and_delete(report, reportedUser, sub_homework, role):
     if report.Type == 0:  # wrong content
-        if report.Count > 4 or role >= 2:
-            reportedUser.Points -= 5
+        if get_report_type_count(report, 0) >= 2 or role >= 2:
             reset_sub_homework(sub_homework)
             delete_reports(sub_homework)
     elif report.Type == 1:  # no homework
-        if report.Count > 4 or role >= 2:
+        if get_report_type_count(report, 1) >= 4 or role >= 2:
             reportedUser.Points -= 15
             reset_sub_homework(sub_homework)
             delete_reports(sub_homework)
     elif report.Type == 2:  # violence
-        if report.Count > 4 or role >= 2:
+        if get_report_type_count(report, 2) >= 4 or role >= 2:
             reportedUser.Points = -999  # instant ban
             reset_sub_homework(sub_homework)
             delete_reports(sub_homework)
     elif report.Type == 3:  # porn
-        if report.Count > 4 or role >= 2:
+        if get_report_type_count(report, 3) >= 4 or role >= 2:
             reportedUser.Points = -999  # instant ban
             reset_sub_homework(sub_homework)
             delete_reports(sub_homework)
-    elif report.Type == 3:  # both violence and porn
-        if report.Count > 4 or role >= 2:
+    elif report.Type == 4:  # both violence and porn
+        if get_report_type_count(report, 4) >= 4 or role >= 2:
             reportedUser.Points = -999  # instant ban
             reset_sub_homework(sub_homework)
             delete_reports(sub_homework)
@@ -70,23 +69,20 @@ def report_sub_homework(homework_id, sub_homework_id, type):
     if sub_homework:
         if g.user.Role == -1:
             return 200 # fuck of
-        report = ClassReports.query.filter(and_(ClassReports.Type == type, ClassReports.SubHomeworkId == sub_homework_id)).first()
-        if report:
-            if report.ByUserId != g.user.id:
-                report.Count += 1
-                db.session.commit()
-                sub_homework_report_execution(sub_homework)
-                return 200
-            return 403
         school_class = get_school_class_by_user()
         if school_class:
-            report = ClassReports(Type=type, Count=1, ByUserId=g.user.id, SchoolClassId=school_class.id, HomeworkListId=homework_id, SubHomeworkId=sub_homework_id)
+            report = ClassReports(Type=type, ByUserId=g.user.id, SchoolClassId=school_class.id, HomeworkListId=homework_id, SubHomeworkId=sub_homework_id)
             db.session.add(report)
             db.session.commit()
             sub_homework_report_execution(sub_homework)
             return 200
         return 401
     return 401
+
+
+def get_report_type_count(report, type):
+    reports = ClassReports.query.filter(and_(ClassReports.Type==type, ClassReports.SubHomeworkId==report.SubHomeworkId))
+    return reports.count()
 
 
 def has_reported_sub_homework(sub_homework):
@@ -112,7 +108,6 @@ def report_type_to_string(report):
 def get_report_as_dict(report):
     report = {
         "type" : report_type_to_string(report),
-        "count" : report.Count,
         "reportCreator" : user_to_dict(get_user_by_id(report.ByUserId)),
         "reportedUser" : user_to_dict(get_user_by_id(get_sub_homework_from_id(report.HomeworkListId, report.SubHomeworkId).UserId)),
         "reportSubHomeworkId" : report.SubHomeworkId,
@@ -122,7 +117,7 @@ def get_report_as_dict(report):
 
 
 def get_reports():
-    if not g.user.Role >= 2:
+    if g.user.Role < 2:
         return 401
     school_class = get_school_class_by_user()
     if school_class:
@@ -149,6 +144,36 @@ def reset_sub_homework_from_mod(homeworkId, subHomeworkId):
     return 401
 
 
+def get_users_data():
+    if not g.user.Role >= 2:
+        return 401
+    users = Users.query.filter_by(SchoolClassId=g.user.SchoolClassId)
+    users_dict_list = []
+    for user in users:
+        if user.id != g.user.id:
+            users_dict_list.append(user_to_dict(user))
+    g.data["users"] = users_dict_list
+    return 200
+
+
+def remove_points(user_id, points):
+    if not g.user.Role >= 2:
+        return 401
+
+    user_to_remove_points_from = get_user_by_id(user_id)
+    if user_to_remove_points_from.id == g.user.id:
+        return 401
+    if is_user_in_users_school(g.user, user_to_remove_points_from):
+        user_to_remove_points_from.Points -= int(points)
+        if -30 >= user_to_remove_points_from.Points:  # ban user if under or equal to -30 Points
+            user_to_remove_points_from.Role = -1
+        elif user_to_remove_points_from.Role == -1:  # un ban user if above -30 points
+            user_to_remove_points_from.Role = 0
+        db.session.commit()
+        return 200
+    return 401
+
+
 from .db_homework import get_sub_homework_from_id, reset_sub_homework
-from .db_school import get_school_class_by_user
+from .db_school import get_school_class_by_user, is_user_in_users_school
 from .db_user import user_to_dict, get_user_by_id

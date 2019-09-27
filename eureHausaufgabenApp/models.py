@@ -58,7 +58,6 @@ class SubHomeworkLists(db.Model):
 class ClassReports(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     Type = db.Column(db.Integer)
-    Count = db.Column(db.Integer)
     ByUserId = db.Column(db.Integer)
     SchoolClassId = db.Column(db.Integer)
     HomeworkListId = db.Column(db.Integer)
