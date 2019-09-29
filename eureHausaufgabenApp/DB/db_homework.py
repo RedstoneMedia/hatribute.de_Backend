@@ -193,21 +193,25 @@ def get_sub_homework_add_points():
         points = 15
     return points
 
+def update_homework_done(homework):
+    done_count = 0
+    items_count = 0
+    sub_homework_items = get_all_sub_homework_by_sub_homework(SubHomeworkLists.query.filter_by(HomeworkListId=homework.id).first())
+    for i in sub_homework_items:
+        items_count += 1
+        if i.Done:
+            done_count += 1
+    homework.DonePercentage = round((done_count / items_count) * 100)
+    db.session.commit()
+
 
 def upload_sub_homework(homework_id, sub_homework_id, files):
     sub_homework = get_sub_homework_from_id(homework_id, sub_homework_id)
     if sub_homework:
         file_util.save_images_in_sub_folder(files, "{}-{}".format(homework_id, sub_homework.id))
-        done_count = 0
-        items_count = 0
         sub_homework.Done = True
-        sub_homework_items = get_all_sub_homework_by_sub_homework(sub_homework)
-        for i in sub_homework_items:
-            items_count += 1
-            if i.Done:
-                done_count += 1
         homework = HomeworkLists.query.filter_by(id=homework_id).first()
-        homework.DonePercentage = round((done_count / items_count) * 100)
+        update_homework_done(homework)
         g.user.Points += get_sub_homework_add_points()
         db.session.commit()
         return 200
@@ -267,6 +271,8 @@ def delete_homework(homework_id):
 def reset_sub_homework(sub_homework):
     sub_homework.Done = False
     sub_homework.UserId = None
+    homework = HomeworkLists.query.filter_by(id=sub_homework.HomeworkListId).first()
+    update_homework_done(homework)
     sub_folder = "{}-{}".format(sub_homework.HomeworkListId, sub_homework.id)
     count = file_util.get_image_count_in_sub_folder(sub_folder)
     if count > 0:

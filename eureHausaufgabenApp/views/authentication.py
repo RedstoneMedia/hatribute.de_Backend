@@ -1,7 +1,7 @@
 from flask import Blueprint, request, g
 
 import eureHausaufgabenApp.DB.db_user
-from eureHausaufgabenApp.DB import db_auth
+from eureHausaufgabenApp.DB import db_auth, db_user
 from eureHausaufgabenApp import app
 import json
 
@@ -67,7 +67,7 @@ def delete_account():
         data = request.get_json()
         before_request(data)
         if g.user:
-            db_auth.delete_account()
+            db_user.reset_account()
             return_data, error_code = json.dumps(g.data), 200
         else:
             return_data, error_code = json.dumps(g.data), 400

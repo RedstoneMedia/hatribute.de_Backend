@@ -1,6 +1,7 @@
 import json
 
 from flask import g
+from sqlalchemy import and_
 
 from eureHausaufgabenApp import Users, db
 from eureHausaufgabenApp.models import Schools
@@ -34,16 +35,30 @@ def user_to_dict(user):
         "points" : user.Points
     }
 
+def reset_account():
+    g.user.Email = None
+    g.user.Role = None
+    g.user.Points = None
+    g.user.HashedPwd = None
+    g.user.Salt = None
+    g.user.HashedSessionID = None
+    g.user.SessionExpires = None
+    g.user.SessionNonce = None
+    db.session.commit()
+
 
 def create_user(email, name, school_name, school_class_name, hashed_pwd, salt):
     school = Schools.query.filter_by(Name=school_name).first()
     school_class = SchoolClasses.query.filter_by(ClassName=school_class_name).first()
     email_allready_used = Users.query.filter_by(Email=email).first()
-    name_allready_used = Users.query.filter_by(Username=name).first()
+    name_and_not_active = Users.query.filter(and_(Users.Username == name, Users.HashedPwd == None)).first()
 
-    if school != None and school_class != None and email_allready_used == None and name_allready_used == None and crypto_util.check_if_hash(hashed_pwd):
-        user = Users(Email=email, HashedPwd=hashed_pwd, Username=name, SchoolId=school.id, SchoolClassId=school_class.id, Salt=salt, Role=0, Points=20)
-        db.session.add(user)
+    if school != None and school_class != None and email_allready_used == None and name_and_not_active != None and crypto_util.check_if_hash(hashed_pwd):
+        name_and_not_active.Email = email
+        name_and_not_active.HashedPwd = hashed_pwd
+        name_and_not_active.Salt = salt
+        name_and_not_active.Role = 0
+        name_and_not_active.Points = 20
         db.session.commit()
         return json.dumps({"User-created" : True}), 200
     else:

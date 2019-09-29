@@ -72,12 +72,7 @@ def store_new_session_nonce(user, nonce):
 def logout():
     user = g.user
     pop_session(user)
-
-
-def delete_account():
-    db.session.delete(g.user)
-    db.session.commit()
-
+    
 
 def get_salt_by_email(email):
     user = Users.query.filter_by(Email=email).first()

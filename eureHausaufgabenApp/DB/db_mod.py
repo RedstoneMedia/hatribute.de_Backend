@@ -174,6 +174,6 @@ def remove_points(user_id, points):
     return 401
 
 
-from .db_homework import get_sub_homework_from_id, reset_sub_homework
+from .db_homework import reset_sub_homework, get_sub_homework_from_id
 from .db_school import get_school_class_by_user, is_user_in_users_school
 from .db_user import user_to_dict, get_user_by_id
