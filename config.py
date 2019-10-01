@@ -1,2 +1,3 @@
 SQLALCHEMY_DATABASE_URI = "sqlite:///../DATA.db"
 SQLALCHEMY_TRACK_MODIFICATIONS = False
+TEMP_IMAGE_FOLDER = "C:\\xampp\\htdocs\\assets\\"

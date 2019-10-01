@@ -26,19 +26,19 @@ def user_to_dict(user):
             "id" : None,
             "name": None,
             "role": None,
-            "points" : None
+            "points" : None,
+            "stay_logged_in" : None
         }
     return  {
         "id" : user.id,
         "name": str(user.Username),
         "role": user.Role,
-        "points" : user.Points
+        "points" : user.Points,
+        "stay_logged_in": user.StayLoggedIn
     }
 
 def reset_account():
     g.user.Email = None
-    g.user.Role = None
-    g.user.Points = None
     g.user.HashedPwd = None
     g.user.Salt = None
     g.user.HashedSessionID = None
@@ -57,8 +57,10 @@ def create_user(email, name, school_name, school_class_name, hashed_pwd, salt):
         name_and_not_active.Email = email
         name_and_not_active.HashedPwd = hashed_pwd
         name_and_not_active.Salt = salt
-        name_and_not_active.Role = 0
-        name_and_not_active.Points = 20
+        name_and_not_active.StayLoggedIn = False
+        if name_and_not_active.Role != -1:
+            name_and_not_active.Role = 0
+            name_and_not_active.Points = 20
         db.session.commit()
         return json.dumps({"User-created" : True}), 200
     else:

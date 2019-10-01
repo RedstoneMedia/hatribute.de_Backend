@@ -35,11 +35,12 @@ def login():
             before_request(data)
             email = str(data["email"])
             hashed_pwd = str(data["hashedpwd"])
-            res, error_code = db_auth.login(email, hashed_pwd, app.config["secret-key"])
+            stay_logged_in = bool(data["stay_logged_in"])
+            res, error_code = db_auth.login(email, hashed_pwd, stay_logged_in, app.config["secret-key"])
             return json.dumps(res), error_code
 
         except Exception as e:
-            print("Login : " + str(e))
+            print("login : " + str(e))
             return "Bad Request", 400
 
     else:

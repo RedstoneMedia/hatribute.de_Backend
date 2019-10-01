@@ -2,6 +2,7 @@ import os
 import time
 from PIL import Image
 from base64 import decodebytes, b64encode
+from threading import Thread
 import shutil
 
 def remove_sub_folder(sub_folder):
@@ -12,6 +13,43 @@ def get_image_count_in_sub_folder(sub_folder):
     if os.path.exists(folder_path):
         return len([name for name in os.listdir(folder_path) if os.path.isfile(os.path.join(folder_path, name))])
     return 0
+
+
+def copy_sub_images(sub_folder, copy_to_folder):
+    folder_path = "Homework\\{}".format(sub_folder)
+    if not os.path.exists(copy_to_folder):
+        os.mkdir(copy_to_folder)
+    else:
+        return
+    if os.path.exists(folder_path):
+        for name in os.listdir(folder_path):
+            path = os.path.join(folder_path, name)
+            if os.path.isfile(path):
+                shutil.copy(path, copy_to_folder, follow_symlinks=False)
+
+
+
+def delete_temp_sub_image_folder(wait_time, temp_folder):
+    if os.path.exists(temp_folder):
+        t = Thread(target=_delete_temp_sub_image_folder, args=(wait_time, temp_folder, ))
+        t.start()
+
+
+def delete_all_temp_sub_image_folders(temp_folders_path, ignore_dirs=None):
+    if ignore_dirs is None:
+        ignore_dirs = ["img"]
+    if os.path.exists(temp_folders_path):
+        for name in os.listdir(temp_folders_path):
+            path = os.path.join(temp_folders_path, name)
+            if os.path.isdir(path):
+                if not name in ignore_dirs:
+                    shutil.rmtree(path)
+
+
+def _delete_temp_sub_image_folder(wait_time, temp_folder):
+    time.sleep(wait_time)
+    shutil.rmtree(temp_folder)
+
 
 def get_images_in_sub_folder_as_base64(sub_folder):
     base64_images = []

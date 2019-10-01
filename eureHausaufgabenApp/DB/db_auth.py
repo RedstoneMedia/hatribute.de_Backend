@@ -10,7 +10,7 @@ from eureHausaufgabenApp.models import Users
 import time
 
 
-def login(email, hashed_pwd, secret_key):
+def login(email, hashed_pwd, stay_logged_in , secret_key):
     user = Users.query.filter_by(Email=email).first()
 
     if user == None:
@@ -25,6 +25,7 @@ def login(email, hashed_pwd, secret_key):
     check_pwd_hash = hashed_pwd
     if original_hash_pwd == check_pwd_hash:
         print("[{email}] : right pwd".format(email=str(email)))
+        user.StayLoggedIn = stay_logged_in
         session = gen_new_session(check_pwd_hash, email, secret_key, user)
         data = {
             'right': True,
@@ -46,7 +47,7 @@ def gen_new_session(check_pwd_hash, email, secret_key, user):
     session_id = crypto_util.hash(pwd_and_email + random_string)
     nonce = crypto_util.random_string(30)
     store_new_session_nonce(user, nonce)
-    expires = save_session(user, crypto_util.hash(session_id + real_ip + nonce))
+    expires = save_session(user, crypto_util.hash(session_id + real_ip + nonce), expires=10)
     key = str(secret_key)
     key = key.encode()
     key = hashlib.sha256(key).digest()
@@ -55,9 +56,12 @@ def gen_new_session(check_pwd_hash, email, secret_key, user):
     return binascii.hexlify(enc).decode("utf-8"), expires
 
 
-def save_session(user, sessionHash, expires=10):
+def save_session(user, sessionHash, expires):
     user.HashedSessionID = sessionHash
-    user.SessionExpires = str(datetime.now() + timedelta(minutes=expires))
+    if not user.StayLoggedIn:
+        user.SessionExpires = str(datetime.now() + timedelta(minutes=expires))
+    else:
+        user.SessionExpires = str(datetime.now() + timedelta(days=62))
     db.session.add(user)
     db.session.commit()
     return user.SessionExpires
@@ -144,7 +148,6 @@ def pop_session(user):
 
 
 def before_request(data):
-
     try:
         session = data["session"]
         other, s_data, user_when_expired = check_session(app.config["secret-key"], session)

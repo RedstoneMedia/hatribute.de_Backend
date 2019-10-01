@@ -41,6 +41,9 @@ def sub_homework_report_execution_remove_points_and_delete(report, reportedUser,
 
     if -30 >= reportedUser.Points: # ban user if under or equal to -30 Points
         reportedUser.Role = -1
+        viewed_homework = get_viewed_homework_by_user(reportedUser)
+        for i in viewed_homework:
+            db.session.delete(i)
     db.session.commit()
 
 
@@ -150,7 +153,7 @@ def get_users_data():
     users = Users.query.filter_by(SchoolClassId=g.user.SchoolClassId)
     users_dict_list = []
     for user in users:
-        if user.id != g.user.id:
+        if user.id != g.user.id and user.HashedPwd != None:
             users_dict_list.append(user_to_dict(user))
     g.data["users"] = users_dict_list
     return 200
@@ -167,6 +170,9 @@ def remove_points(user_id, points):
         user_to_remove_points_from.Points -= int(points)
         if -30 >= user_to_remove_points_from.Points:  # ban user if under or equal to -30 Points
             user_to_remove_points_from.Role = -1
+            viewed_homework = get_viewed_homework_by_user(user_to_remove_points_from)
+            for i in viewed_homework:
+                db.session.delete(i)
         elif user_to_remove_points_from.Role == -1:  # un ban user if above -30 points
             user_to_remove_points_from.Role = 0
         db.session.commit()
@@ -174,6 +180,6 @@ def remove_points(user_id, points):
     return 401
 
 
-from .db_homework import reset_sub_homework, get_sub_homework_from_id
+from .db_homework import reset_sub_homework, get_sub_homework_from_id, get_viewed_homework_by_user
 from .db_school import get_school_class_by_user, is_user_in_users_school
 from .db_user import user_to_dict, get_user_by_id

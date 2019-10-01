@@ -8,12 +8,12 @@ class Users(db.Model):
     SchoolClassId = db.Column(db.Integer)
     Role = db.Column(db.Integer)
     Points = db.Column(db.Integer)
+    StayLoggedIn = db.Column(db.Boolean(create_constraint=False))
     HashedPwd = db.Column(db.String(512))
     Salt = db.Column(db.String(512))
     HashedSessionID = db.Column(db.String(512))
     SessionExpires = db.Column(db.String(200))
     SessionNonce = db.Column(db.String(200))
-
 
 
 class Schools(db.Model):

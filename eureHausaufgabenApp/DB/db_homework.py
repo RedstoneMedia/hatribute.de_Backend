@@ -3,12 +3,15 @@ from datetime import date
 from datetime import datetime
 
 from eureHausaufgabenApp.util import file_util
+from eureHausaufgabenApp.util.crypto_util import random_string
 
 from eureHausaufgabenApp import db, app
 from eureHausaufgabenApp.models import SubHomeworkLists
 from eureHausaufgabenApp.models import HomeworkLists
 from eureHausaufgabenApp.models import Users
 from eureHausaufgabenApp.models import UserViewedHomework
+from eureHausaufgabenApp.models import ClassReports
+
 
 
 def get_school_class_data():
@@ -89,11 +92,16 @@ def remove_sub_homework(sub_homework):
     db.session.delete(sub_homework)
     db.session.commit()
 
-
 def remove_homework(homework):
     sub_homeworks = SubHomeworkLists.query.filter_by(HomeworkListId=homework.id)
     for sub_homework in sub_homeworks:
         remove_sub_homework(sub_homework)
+    view_homework = UserViewedHomework.query.filter_by(HomeworkListId=homework.id)
+    for i in view_homework:
+        db.session.delete(i)
+    reports = ClassReports.query.filter_by(HomeworkListId=homework.id)
+    for i in reports:
+        delete_reports(i)
     db.session.delete(homework)
     db.session.commit()
 
@@ -153,6 +161,10 @@ def get_viewed_homework_by_homework_id(homework_id):
     return UserViewedHomework.query.filter_by(HomeworkListId=homework_id, UserId=g.user.id).first()
 
 
+def get_viewed_homework_by_user(user):
+    return UserViewedHomework.query.filter_by(UserId=user.id)
+
+
 def get_sub_homework_from_id(homework_id, sub_homework_id):
     homework = HomeworkLists.query.filter_by(id=homework_id).first()
     if homework.SchoolClassId == get_school_class_by_user().id:  # check if user is in right class
@@ -208,6 +220,8 @@ def update_homework_done(homework):
 def upload_sub_homework(homework_id, sub_homework_id, files):
     sub_homework = get_sub_homework_from_id(homework_id, sub_homework_id)
     if sub_homework:
+        if len(files) > 10:
+            return 403
         file_util.save_images_in_sub_folder(files, "{}-{}".format(homework_id, sub_homework.id))
         sub_homework.Done = True
         homework = HomeworkLists.query.filter_by(id=homework_id).first()
@@ -233,15 +247,21 @@ def view_homework(homework_id):
     return True
 
 
-def get_sub_homework_images_as_base64(homework_id, sub_homework_id):
+def get_sub_homework_images_url(homework_id, sub_homework_id):
     sub_homework = get_sub_homework_from_id(homework_id, sub_homework_id)
     if sub_homework:
         viewed_homework = get_viewed_homework_by_homework_id(homework_id)
-        if not viewed_homework:
-            if not view_homework(homework_id):
+        if not view_homework(homework_id):
+            if not viewed_homework:
                 return 403
         sub_folder = "{}-{}".format(sub_homework.HomeworkListId, sub_homework.id)
-        g.data["base64_images"] = file_util.get_images_in_sub_folder_as_base64(sub_folder)
+        random_folder_string = "{0:s}{1:s}".format(sub_folder, random_string(10))
+        copy_to_folder = "C:\\xampp\\htdocs\\assets\\{0:s}".format(random_folder_string)
+        file_util.copy_sub_images(sub_folder, copy_to_folder)
+        image_count_total = file_util.get_image_count_in_sub_folder(sub_folder)
+        file_util.delete_temp_sub_image_folder(max(min(image_count_total/4, 30), 10), copy_to_folder) # start thread that waits 10 seconds and then deletes the temp folder
+        g.data["images_url"] = "assets\\{0:s}".format(random_folder_string)
+        g.data["images_total"] = image_count_total
         return 200
     return 401
 
@@ -281,5 +301,5 @@ def reset_sub_homework(sub_homework):
 
 
 from .db_school import get_school_class_by_user, school_class_to_dict, get_school_by_user
-from .db_mod import has_reported_sub_homework
+from .db_mod import has_reported_sub_homework, delete_reports
 from .db_user import user_to_dict

@@ -82,13 +82,13 @@ def upload_sub_homework():
         return str("Unsupported Media Type ! Forgot mime type application/json header ?"), 406
 
 
-@homework.route("/get_sub_homework_images",  methods=['POST'])
-def get_sub_homework_images():
+@homework.route("/get_sub_homework_images_url",  methods=['POST'])
+def get_sub_homework_images_url():
     if request.is_json:
         data = request.get_json()
         before_request(data)
         if g.user:
-            error_code = db_homework.get_sub_homework_images_as_base64(data["homework_id"], data["sub_homework_id"])
+            error_code = db_homework.get_sub_homework_images_url(data["homework_id"], data["sub_homework_id"])
             return_data = json.dumps(g.data)
         else:
             return_data, error_code = json.dumps(g.data), 400

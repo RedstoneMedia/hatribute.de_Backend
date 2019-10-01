@@ -3,6 +3,9 @@ from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 import binascii
 from Cryptodome import Random
+from .util.file_util import delete_all_temp_sub_image_folders
+import shutil
+import os
 
 
 app = Flask(__name__)
@@ -18,3 +21,5 @@ from .views.modDashboard import modDashboard
 app.register_blueprint(authentication)
 app.register_blueprint(homework)
 app.register_blueprint(modDashboard)
+
+delete_all_temp_sub_image_folders(app.config["TEMP_IMAGE_FOLDER"], ["img"]) # auto delete temp folders at startup
