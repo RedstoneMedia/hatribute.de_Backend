@@ -47,7 +47,7 @@ def gen_new_session(check_pwd_hash, email, secret_key, user):
     session_id = crypto_util.hash(pwd_and_email + random_string)
     nonce = crypto_util.random_string(30)
     store_new_session_nonce(user, nonce)
-    expires = save_session(user, crypto_util.hash(session_id + real_ip + nonce), expires=10)
+    expires = save_session(user, crypto_util.hash(session_id + real_ip + nonce), expires=app.config["SESSION_EXPIRE_TIME_MINUTES"])
     key = str(secret_key)
     key = key.encode()
     key = hashlib.sha256(key).digest()
@@ -61,7 +61,7 @@ def save_session(user, sessionHash, expires):
     if not user.StayLoggedIn:
         user.SessionExpires = str(datetime.now() + timedelta(minutes=expires))
     else:
-        user.SessionExpires = str(datetime.now() + timedelta(days=62))
+        user.SessionExpires = str(datetime.now() + timedelta(days=app.config["SESSION_EXPIRE_TIME_STAY_LOGGED_IN_DAYS"]))
     db.session.add(user)
     db.session.commit()
     return user.SessionExpires
@@ -124,16 +124,19 @@ def check_session(secret_key, enc_session):
 
             if now >= expires:
                 return False, {"session": {"right": False}}, user
-
             else:
-                new_session = gen_new_session(user.HashedPwd, user.Email, secret_key, user)
                 data = {
                     'session': {
-                        'right': True,
-                        'session': new_session[0],
-                        'expires': new_session[1]
+                        'right': True
                     }
                 }
+
+                # check if session is about to expire and if it is create a new session and update the expiration date
+                if now >= (expires - timedelta(hours=0, minutes=app.config["SESSION_EXPIRE_TIME_MINUTES"] / 2)) or (user.StayLoggedIn and now >= (expires - (timedelta(days=app.config["SESSION_EXPIRE_TIME_STAY_LOGGED_IN_DAYS"]) - timedelta(minutes=app.config["SESSION_EXPIRE_TIME_MINUTES"] / 2)))):
+                    new_session = gen_new_session(user.HashedPwd, user.Email, secret_key, user)
+                    data["session"]["session"] = new_session[0]
+                    data["session"]["expires"] = new_session[1]
+
                 return user, data, None
     else:
         return False, {"session": {"right": False}}, None
