@@ -259,8 +259,8 @@ def get_sub_homework_images_url(homework_id, sub_homework_id):
         copy_to_folder = "C:\\xampp\\htdocs\\assets\\{0:s}".format(random_folder_string)
         file_util.copy_sub_images(sub_folder, copy_to_folder)
         image_count_total = file_util.get_image_count_in_sub_folder(sub_folder)
-        file_util.delete_temp_sub_image_folder(max(min(image_count_total/4, 30), 10), copy_to_folder) # start thread that waits 10 seconds and then deletes the temp folder
-        g.data["images_url"] = "assets\\{0:s}".format(random_folder_string)
+        file_util.delete_temp_sub_image_folder(max(min(image_count_total/4, 30), app.config["DEL_TEMP_SUB_IMAGES_WAIT_TIME"]), copy_to_folder) # start thread that waits a given amount of seconds and then deletes the temporary folder
+        g.data["images_url"] = "assets/{0:s}".format(random_folder_string)
         g.data["images_total"] = image_count_total
         return 200
     return 401

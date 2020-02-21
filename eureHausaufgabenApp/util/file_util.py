@@ -50,7 +50,6 @@ def _delete_temp_sub_image_folder(wait_time, temp_folder):
     time.sleep(wait_time)
     shutil.rmtree(temp_folder)
 
-
 def get_images_in_sub_folder_as_base64(sub_folder):
     base64_images = []
     for i in range(get_image_count_in_sub_folder(sub_folder)):
@@ -87,18 +86,19 @@ def save_image_from_b64_string(image_data : str, image_name):
             with open(image_path, "wb") as fh:
                 fh.write(decodebytes(bytes(base64_string, encoding="utf-8")))
             fh.close()
+            im = Image.open(image_path)
+            rgb_im = im.convert('RGB')  # remove alpha
+            rgb_im.thumbnail((2560, 1440))  # limit image size to Q HD
+            rgb_im.save("Homework\\{}.jpg".format(image_name), optimize=True, quality=60)  # save as jpg
+            del im, rgb_im
 
-            if image_type_info[1] != "png":
-                im = Image.open(image_path)
-                im.save("Homework\\{}.png".format(image_name))
-                del im
-                if os.path.isfile(image_path):
-                    for i in range(0, 10):
-                        try:
-                            os.remove(image_path)
-                            break
-                        except PermissionError:
-                            time.sleep(0.1)
+            if image_type_info[1] != "jpg":
+                for i in range(0, 10):
+                    try:
+                        os.remove(image_path)  # delete original
+                        break
+                    except PermissionError:
+                        time.sleep(0.1)
             return True
         return False
     except Exception as e:
