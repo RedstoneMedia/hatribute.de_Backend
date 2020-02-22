@@ -15,7 +15,6 @@ def login(email, hashed_pwd, stay_logged_in , secret_key):
     user = Users.query.filter_by(Email=email).first()
 
     if user == None:
-        print("user dose not exist !")
         app.logger.info(f"Provided user with email : '{email}' does not exist")
         return {"right": False}, 401
 
@@ -26,7 +25,7 @@ def login(email, hashed_pwd, stay_logged_in , secret_key):
     original_hash_pwd = user.HashedPwd
     check_pwd_hash = hashed_pwd
     if original_hash_pwd == check_pwd_hash:
-        app.logger.info(f"Right password for user with email : {email}")
+        app.logger.info(f"Right password for user with email : '{email}'")
         user.StayLoggedIn = stay_logged_in
         session = gen_new_session(check_pwd_hash, email, secret_key, user)
         data = {
@@ -39,7 +38,7 @@ def login(email, hashed_pwd, stay_logged_in , secret_key):
         }
         return data, 200
     else:
-        app.logger.info(f"Wrong password for user with email : {email}")
+        app.logger.info(f"Wrong password for user with email : '{email}'")
         return {"right": False}, 401
 
 def gen_new_session(check_pwd_hash, email, secret_key, user, old_session=None):
@@ -139,6 +138,7 @@ def check_session(secret_key, enc_session):
 
             if now >= expires:
                 pop_session(found_session)
+                app.logger.info(f"Session expired for user : {user.Email}")
                 delete_all_really_old_sessions()
                 return False, {"session": {"right": False}}, user
             else:
@@ -158,6 +158,7 @@ def check_session(secret_key, enc_session):
                 delete_all_really_old_sessions()
                 return user, data, None, new_session
     else:
+        app.logger.info(f"Session was not found")
         return False, {"session": {"right": False}}, None
 
 
@@ -190,8 +191,4 @@ def before_request(data):
     else:
         g.user = None
         g.session_db_object = None
-        if user_when_expired:
-            pop_session(user_when_expired)
-            app.logger.info(f"Session expired for user : {user_when_expired.Email}")
-        else:
-            app.logger.info(f"Session was incorrect")
+

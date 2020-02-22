@@ -4,9 +4,25 @@ from flask_sqlalchemy import SQLAlchemy
 import binascii
 from Cryptodome import Random
 from .util.file_util import delete_all_temp_sub_image_folders
-import shutil
-import os
+from flask import has_request_context, request
+from flask.logging import default_handler
+import logging
 
+class RequestFormatter(logging.Formatter):
+    def format(self, record):
+        if has_request_context():
+            record.url = request.url
+            record.remote_addr = request.remote_addr
+        else:
+            record.url = None
+            record.remote_addr = None
+
+        return super().format(record)
+
+formatter = RequestFormatter(
+    '[%(asctime)s] %(remote_addr)s requested %(url)s %(levelname)s in %(module)s: %(message)s'
+)
+default_handler.setFormatter(formatter)
 
 app = Flask(__name__)
 app.config.from_object('config')

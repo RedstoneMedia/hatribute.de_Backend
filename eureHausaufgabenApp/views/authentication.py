@@ -4,6 +4,7 @@ import eureHausaufgabenApp.DB.db_user
 from eureHausaufgabenApp.DB import db_auth, db_user
 from eureHausaufgabenApp import app
 import json
+import traceback
 
 from eureHausaufgabenApp.DB.db_auth import before_request
 
@@ -20,7 +21,7 @@ def get_salt():
             return json.dumps(res), error_code
 
         except Exception as e:
-            print("get_salt : " + str(e))
+            app.logger.error("get_salt : " + traceback.format_exc())
             return "Bad Request", 400
 
     else:
@@ -40,7 +41,7 @@ def login():
             return json.dumps(res), error_code
 
         except Exception as e:
-            print("login : " + str(e))
+            app.logger.error("login : " + traceback.format_exc())
             return "Bad Request", 400
 
     else:
@@ -91,7 +92,7 @@ def sign_in():
             res, error_code = eureHausaufgabenApp.DB.db_user.create_user(email, name, school, school_class, hashed_password, salt)
             return str(res), error_code
         except Exception as e:
-            print("Sign in : " + str(e))
+            app.logger.error("Sign in : " + traceback.format_exc())
             return "Bad Request", 400
     else:
         return str("Unsupported Media Type ! Forgot mime type application/json header ?"), 406
