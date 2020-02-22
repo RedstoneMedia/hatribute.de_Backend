@@ -266,6 +266,21 @@ def get_sub_homework_images_url(homework_id, sub_homework_id):
     return 401
 
 
+def get_sub_homework_base64_images(homework_id, sub_homework_id):
+    sub_homework = get_sub_homework_from_id(homework_id, sub_homework_id)
+    if sub_homework:
+        viewed_homework = get_viewed_homework_by_homework_id(homework_id)
+        if not view_homework(homework_id):
+            if not viewed_homework:
+                return 403
+        sub_folder = "{}-{}".format(sub_homework.HomeworkListId, sub_homework.id)
+        base64_images = file_util.get_images_in_sub_folder_as_base64(sub_folder)
+        g.data["base64_images"] = base64_images
+        g.data["images_total"] = len(base64_images)
+        return 200
+    return 401
+
+
 def delete_homework(homework_id):
     homework = HomeworkLists.query.filter_by(id=homework_id).first()
     if homework:

@@ -54,14 +54,14 @@ def get_images_in_sub_folder_as_base64(sub_folder):
     base64_images = []
     for i in range(get_image_count_in_sub_folder(sub_folder)):
         folder_path = "Homework\\{}".format(sub_folder)
-        base64_images.append(get_base64image_from_path("{}\\{}.png".format(folder_path, i)))
+        base64_images.append(get_base64image_from_path("{}\\{}.jpg".format(folder_path, i)))
     return base64_images
 
 def get_base64image_from_path(path):
     with open(path, "rb") as image_file:
         encoded_string = b64encode(image_file.read())
     encoded_string = str(encoded_string, encoding="utf-8")
-    encoded_string = "data:image/png;base64, {0:s}".format(encoded_string)
+    encoded_string = "data:image/jpg;base64, {0:s}".format(encoded_string)
     return encoded_string
 
 def save_images_in_sub_folder(images, sub_folder):
