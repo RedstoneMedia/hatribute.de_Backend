@@ -70,7 +70,7 @@ def sub_homework_report_execution(sub_homework):
 def report_sub_homework(homework_id, sub_homework_id, type):
     sub_homework = get_sub_homework_from_id(homework_id, sub_homework_id)
     if sub_homework:
-        if g.user.Role == -1:
+        if g.user.Role == -1:  # if user is banned
             return 200 # fuck of
         school_class = get_school_class_by_user()
         if school_class:

@@ -11,6 +11,11 @@ class Users(db.Model):
     StayLoggedIn = db.Column(db.Boolean(create_constraint=False))
     HashedPwd = db.Column(db.String(512))
     Salt = db.Column(db.String(512))
+
+
+class Sessions(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    UserId = db.Column(db.Integer)
     HashedSessionID = db.Column(db.String(512))
     SessionExpires = db.Column(db.String(200))
     SessionNonce = db.Column(db.String(200))
