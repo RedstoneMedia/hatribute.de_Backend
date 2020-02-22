@@ -19,6 +19,7 @@ class Sessions(db.Model):
     HashedSessionID = db.Column(db.String(512))
     SessionExpires = db.Column(db.String(200))
     SessionNonce = db.Column(db.String(200))
+    Actions = db.Column(db.Integer)
 
 
 class Schools(db.Model):

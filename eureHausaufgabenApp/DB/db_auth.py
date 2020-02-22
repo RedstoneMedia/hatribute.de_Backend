@@ -41,10 +41,24 @@ def login(email, hashed_pwd, stay_logged_in , secret_key):
         app.logger.info(f"Wrong password for user with email : '{email}'")
         return {"right": False}, 401
 
+
 def gen_new_session(check_pwd_hash, email, secret_key, user, old_session=None):
+
+    # pop sessions until the amount of sessions is at the maximum
+    while Sessions.query.filter_by(UserId=user.id).count() >= app.config["SESSION_PER_USER_LIMIT"]:
+        next_session = None
+        # make sure that the picked session is not the current session
+        for s in Sessions.query.filter_by(UserId=user.id).order_by(Sessions.Actions):
+            if s != old_session:
+                next_session = s
+                break
+        pop_session(next_session)
+
+    actions = 0
     if old_session:
-        pop_session(old_session)
-    new_session = Sessions(UserId=user.id)
+        actions = old_session.Actions
+        pop_session(old_session)  # pop old session
+    new_session = Sessions(UserId=user.id, Actions=actions)  # create new session and inherit UserId and actions
     pwd_and_email = check_pwd_hash+email
     random_string = crypto_util.random_string(30)
     real_ip = request.environ.get('HTTP_X_REAL_IP', request.remote_addr)
@@ -78,7 +92,7 @@ def store_new_session_nonce(session, nonce):
 
 
 def logout():
-    session = g.session_db_object
+    session = Sessions.query.filter_by(id=g.session_db_object.id).first()
     pop_session(session)
     
 
@@ -102,6 +116,15 @@ def delete_all_really_old_sessions():
         expires = datetime.strptime(session.SessionExpires, '%Y-%m-%d %H:%M:%S.%f')
         if now >= expires + timedelta(hours=0, days=app.config["REALLY_OLD_SESSIONS_DELETE_AFTER_EXPIRE_DAYS"]):
             pop_session(session)
+
+
+def register_action(session):
+    try:
+        session.Actions += 1
+        db.session.commit()
+    except Exception:
+        app.logger.error(traceback.format_exc())
+
 
 
 def check_session(secret_key, enc_session):
@@ -147,7 +170,7 @@ def check_session(secret_key, enc_session):
                         'right': True
                     }
                 }
-
+                register_action(found_session)
                 # check if session is about to expire and if it is create a new session and update the expiration date
                 if now >= (expires - timedelta(hours=0, minutes=app.config["SESSION_EXPIRE_TIME_MINUTES"] / 2)) or (user.StayLoggedIn and now >= (expires - (timedelta(days=app.config["SESSION_EXPIRE_TIME_STAY_LOGGED_IN_DAYS"]) - timedelta(minutes=app.config["SESSION_EXPIRE_TIME_MINUTES"] / 2)))):
                     new_encrypted_session, new_expire_time, new_session = gen_new_session(user.HashedPwd, user.Email, secret_key, user, found_session)
