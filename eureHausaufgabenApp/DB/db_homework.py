@@ -232,18 +232,20 @@ def upload_sub_homework(homework_id, sub_homework_id, files):
     return 401
 
 
-def view_homework(homework_id):
+def view_homework(homework_id, viewed_homework):
     if g.user.Role == -1:
         return False
     if g.user.Points < 5:
         return False
     if g.user.Role < 0:
         return False
-    viewed_homework = UserViewedHomework(UserId=g.user.id, HomeworkListId=homework_id)
-    db.session.add(viewed_homework)
-    if not g.user.Role >= 2:
-        g.user.Points -= 5
-    db.session.commit()
+
+    if not viewed_homework:
+        viewed_homework = UserViewedHomework(UserId=g.user.id, HomeworkListId=homework_id)
+        db.session.add(viewed_homework)
+        if not g.user.Role >= 2:
+            g.user.Points -= 5
+        db.session.commit()
     return True
 
 
@@ -251,7 +253,7 @@ def get_sub_homework_images_url(homework_id, sub_homework_id):
     sub_homework = get_sub_homework_from_id(homework_id, sub_homework_id)
     if sub_homework:
         viewed_homework = get_viewed_homework_by_homework_id(homework_id)
-        if not view_homework(homework_id):
+        if not view_homework(homework_id, viewed_homework):
             if not viewed_homework:
                 return 403
         sub_folder = "{}-{}".format(sub_homework.HomeworkListId, sub_homework.id)
