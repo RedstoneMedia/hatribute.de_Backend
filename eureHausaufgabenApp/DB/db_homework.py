@@ -67,9 +67,9 @@ def get_due_string(date : date):
         elif date.weekday() == 4:
             day_string += "Freitag"
         elif date.weekday() == 5:
-            day_string += "Sammstag ?"
+            day_string += "Sammstag 😯"
         elif date.weekday() == 6:
-            day_string += "Sonntag ?"
+            day_string += "Sonntag 😯"
         return day_string
     else:
         return str(date)
@@ -176,9 +176,12 @@ def get_sub_homework_from_id(homework_id, sub_homework_id):
 def register_user_for_sub_homework(homework_id, sub_homework_id):
     sub_homework = get_sub_homework_from_id(homework_id, sub_homework_id)
     if sub_homework:
-        sub_homework.UserId = g.user.id
-        db.session.commit()
-        return 200
+        if not sub_homework.UserId:  # check if no one has registered yet
+            sub_homework.UserId = g.user.id
+            db.session.commit()
+            return 200
+        g.data["already_registered_user"] = user_to_dict(get_user_by_id(sub_homework.UserId))
+        return 403  # someone has registered for this homework already
     return 401
 
 
@@ -272,7 +275,7 @@ def get_sub_homework_base64_images(homework_id, sub_homework_id):
     sub_homework = get_sub_homework_from_id(homework_id, sub_homework_id)
     if sub_homework:
         viewed_homework = get_viewed_homework_by_homework_id(homework_id)
-        if not view_homework(homework_id):
+        if not view_homework(homework_id, viewed_homework):
             if not viewed_homework:
                 return 403
         sub_folder = "{}-{}".format(sub_homework.HomeworkListId, sub_homework.id)
@@ -319,4 +322,4 @@ def reset_sub_homework(sub_homework):
 
 from .db_school import get_school_class_by_user, school_class_to_dict, get_school_by_user
 from .db_mod import has_reported_sub_homework, delete_reports
-from .db_user import user_to_dict
+from .db_user import user_to_dict, get_user_by_id
