@@ -46,18 +46,22 @@ def reset_account():
 
 
 
-def create_user(email, name, school_name, school_class_name, hashed_pwd, salt):
+def create_user(email, name, school_name, school_class_name, password):
     school = Schools.query.filter_by(Name=school_name).first()
     school_class = SchoolClasses.query.filter_by(ClassName=school_class_name).first()
     email_already_used = Users.query.filter_by(Email=email).first()
     name_and_not_active = Users.query.filter(and_(Users.Username == name, Users.HashedPwd == None)).first()
+
+    if not len(password) > 6:
+        return "Forbidden Password must be at least 7 characters long", 403
+
     # check if school and school class is set (you need to set this before you can create a account)
     # check if the email has not been used yet (so don't set it in the database when registering a new user to the system)
     # check if the name is already registered (you need to set this before you can create a account)
-    # check if the hashed password is actually a hashed password and not something else
-    if school != None and school_class != None and email_already_used == None and name_and_not_active != None and crypto_util.check_if_hash(hashed_pwd):
+    if school != None and school_class != None and email_already_used == None and name_and_not_active != None and password != None:
         name_and_not_active.Email = email
-        name_and_not_active.HashedPwd = hashed_pwd
+        hashed_password, salt = crypto_util.gen_salt_and_hash(password)
+        name_and_not_active.HashedPwd = hashed_password
         name_and_not_active.Salt = salt
         name_and_not_active.StayLoggedIn = False
         if name_and_not_active.Role != -1:

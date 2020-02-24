@@ -33,6 +33,21 @@ def check_if_homework_creator(homework):
     return False
 
 
+def get_urgent_level(days_between):
+    if days_between < 0:
+        return -1
+    elif days_between == 0:
+        return 4
+    elif days_between == 1:
+        return 3
+    elif days_between == 2:
+        return 2
+    elif days_between == 3:
+        return 1
+    else:
+        return 0
+
+
 def get_due_string(date : date):
     if g.user.Role == -1:
         return str(date)
@@ -40,22 +55,24 @@ def get_due_string(date : date):
     weeks_between = date.isocalendar()[1] - now.isocalendar()[1]
     if weeks_between == 0:
         days_between = (date - now).days
+        urgent_level = get_urgent_level(days_between)
         if -2 <= days_between <= 2:
             if days_between == -2:
-                return "Vorgestern"
+                return "Vorgestern", urgent_level
             elif days_between == -1:
-                return "Gestern"
+                return "Gestern", urgent_level
             elif days_between == 0:
-                return "Heute"
+                return "Heute", urgent_level
             elif days_between == 1:
-                return "Morgen"
+                return "Morgen", urgent_level
             elif days_between == 2:
-                return "Übermorgen"
+                return "Übermorgen", urgent_level
     elif weeks_between <= 1:
+        days_between = (date - now).days
         day_string = ""
+        urgent_level = get_urgent_level(days_between)
         if weeks_between == 1:
             day_string = "Nächste Woche "
-
         if date.weekday() == 0:
             day_string += "Montag"
         elif date.weekday() == 1:
@@ -70,9 +87,9 @@ def get_due_string(date : date):
             day_string += "Sammstag 😯"
         elif date.weekday() == 6:
             day_string += "Sonntag 😯"
-        return day_string
+        return day_string, urgent_level
     else:
-        return str(date)
+        return str(date), 0
 
 
 def remove_past_homework():
@@ -113,10 +130,12 @@ def get_school_class_dict_by_user():
 
 
 def homework_to_dict(homework):
+    due_string, urgent_level = get_due_string(homework.Due)
     homework_ret = {
         "Exercise" : homework.Exercise,
         "DonePercentage" : homework.DonePercentage,
-        "Due" : get_due_string(homework.Due),
+        "Due" : due_string,
+        "UrgentLevel" : urgent_level,
         "Subject" : homework.Subject,
         "SubHomework" : [],
         "CreatorId" : homework.CreatorId,

@@ -11,19 +11,15 @@ import time
 import traceback
 
 
-def login(email, hashed_pwd, stay_logged_in , secret_key):
+def login(email, password, stay_logged_in , secret_key):
     user = Users.query.filter_by(Email=email).first()
 
     if user == None:
         app.logger.info(f"Provided user with email : '{email}' does not exist")
         return {"right": False}, 401
 
-    if crypto_util.check_if_hash(hashed_pwd) == False:
-        app.logger.error("Provided password was not a hash")
-        return {"right": False}, 401
-
     original_hash_pwd = user.HashedPwd
-    check_pwd_hash = hashed_pwd
+    check_pwd_hash = crypto_util.hash_pwd(password, user.Salt)
     if original_hash_pwd == check_pwd_hash:
         app.logger.info(f"Right password for user with email : '{email}'")
         user.StayLoggedIn = stay_logged_in
@@ -94,19 +90,6 @@ def store_new_session_nonce(session, nonce):
 def logout():
     session = Sessions.query.filter_by(id=g.session_db_object.id).first()
     pop_session(session)
-    
-
-def get_salt_by_email(email):
-    user = Users.query.filter_by(Email=email).first()
-    salt = ""
-    if user == None:  # gen fake salt so the client can't tell if the user exist
-        fake_salt = crypto_util.gen_salt_and_hash("this_is_fake")[1]
-        salt = fake_salt
-    else:
-        salt = user.Salt
-
-    return_data = {"salt" : salt}
-    return return_data, 200
 
 
 def delete_all_really_old_sessions():
