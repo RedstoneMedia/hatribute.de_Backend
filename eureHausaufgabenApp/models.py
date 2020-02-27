@@ -68,3 +68,15 @@ class ClassReports(db.Model):
     SchoolClassId = db.Column(db.Integer)
     HomeworkListId = db.Column(db.Integer)
     SubHomeworkId = db.Column(db.Integer)
+
+
+
+class KnowledgeSources(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    Type = db.Column(db.Integer)
+    ByUserId = db.Column(db.Integer)
+    SchoolClassId = db.Column(db.Integer)
+    Data = db.Column(db.String(200))
+    Votes = db.Column(db.Integer)
+    CreationTime = db.Column(db.Date)
+    LastModifiedTime = db.Column(db.Date)

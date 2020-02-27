@@ -50,7 +50,7 @@ def get_urgent_level(days_between):
 
 def get_due_string(date : date):
     if g.user.Role == -1:
-        return str(date)
+        return str(date), 0
     now = datetime.now().date()
     weeks_between = date.isocalendar()[1] - now.isocalendar()[1]
     if weeks_between == 0:
@@ -67,10 +67,10 @@ def get_due_string(date : date):
                 return "Morgen", urgent_level
             elif days_between == 2:
                 return "Übermorgen", urgent_level
+        return "", urgent_level
     elif weeks_between <= 1:
         days_between = (date - now).days
         day_string = ""
-        urgent_level = get_urgent_level(days_between)
         if weeks_between == 1:
             day_string = "Nächste Woche "
         if date.weekday() == 0:
@@ -87,7 +87,7 @@ def get_due_string(date : date):
             day_string += "Sammstag 😯"
         elif date.weekday() == 6:
             day_string += "Sonntag 😯"
-        return day_string, urgent_level
+        return day_string, get_urgent_level(days_between)
     else:
         return str(date), 0
 
