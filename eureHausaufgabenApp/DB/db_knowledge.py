@@ -1,5 +1,7 @@
 from flask import g
 from sqlalchemy import or_
+from datetime import date
+from datetime import datetime
 
 from eureHausaufgabenApp import db, app
 from eureHausaufgabenApp.models import Users, KnowledgeSources
@@ -9,10 +11,13 @@ def knowledge_source_to_dict(knowledge_source):
         "id" : knowledge_source.id,
         "Type" : knowledge_source.Type,
         "ByUser" : user_to_dict(get_user_by_id(knowledge_source.ByUserId)),
+        "Title" : knowledge_source.Title,
+        "Description" : knowledge_source.Description,
+        "Subject" : knowledge_source.Subject,
         "Data" : knowledge_source.Data,
         "Votes" : knowledge_source.Votes,
-        "CreationTime" : str(knowledge_source.CreationTime),
-        "LastModifiedTime" : str(knowledge_source.LastModifiedTime)
+        "CreationTime" : knowledge_source.CreationTime.strftime("%d.%m.%Y"),
+        "LastModifiedTime" : knowledge_source.LastModifiedTime.strftime("%d.%m.%Y")
     }
     return result
 

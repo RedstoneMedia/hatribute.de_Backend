@@ -74,6 +74,9 @@ class ClassReports(db.Model):
 class KnowledgeSources(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     Type = db.Column(db.Integer)
+    Title = db.Column(db.String(200))
+    Description = db.Column(db.String(400))
+    Subject = db.Column(db.String(40))
     ByUserId = db.Column(db.Integer)
     SchoolClassId = db.Column(db.Integer)
     Data = db.Column(db.String(200))
