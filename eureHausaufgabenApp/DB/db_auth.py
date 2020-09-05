@@ -141,7 +141,7 @@ def pop_all_user_sessions(user):
         pop_session(session)
 
 
-def before_request(data: dict):
+def handel_session_request(data: dict):
     if "session" in data:
         session = data["session"]
         user, return_data, session_db_object = check_session(session)
@@ -157,4 +157,3 @@ def before_request(data: dict):
         g.data = None
         g.user = None
         g.session_db_object = None
-
