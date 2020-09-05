@@ -9,8 +9,7 @@ class Users(db.Model):
     Role = db.Column(db.Integer)
     Points = db.Column(db.Integer)
     StayLoggedIn = db.Column(db.Boolean(create_constraint=False))
-    HashedPwd = db.Column(db.String(512))
-    Salt = db.Column(db.String(512))
+    HashedPwd = db.Column(db.String(60))
 
 
 class Sessions(db.Model):
@@ -18,21 +17,18 @@ class Sessions(db.Model):
     UserId = db.Column(db.Integer)
     HashedSessionID = db.Column(db.String(512))
     SessionExpires = db.Column(db.String(200))
-    SessionNonce = db.Column(db.String(200))
     Actions = db.Column(db.Integer)
 
 
 class Schools(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     Name = db.Column(db.String(200))
-    UnitsSchoolName = db.Column(db.String(200))
 
 
 class SchoolClasses(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     ClassName = db.Column(db.String(200))
     SchoolId = db.Column(db.Integer)
-
 
 
 class HomeworkLists(db.Model):

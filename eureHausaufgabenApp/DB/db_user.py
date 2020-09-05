@@ -60,9 +60,8 @@ def create_user(email, name, school_name, school_class_name, password):
     # check if the name is already registered (you need to set this before you can create a account)
     if school != None and school_class != None and email_already_used == None and name_and_not_active != None and password != None:
         name_and_not_active.Email = email
-        hashed_password, salt = crypto_util.gen_salt_and_hash(password)
+        hashed_password = crypto_util.hash_pwd(password)
         name_and_not_active.HashedPwd = hashed_password
-        name_and_not_active.Salt = salt
         name_and_not_active.StayLoggedIn = False
         if name_and_not_active.Role != -1:
             name_and_not_active.Role = 0

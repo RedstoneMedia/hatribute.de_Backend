@@ -4,8 +4,7 @@ from eureHausaufgabenApp import app
 if __name__ == "__main__":
     app.run(
         debug=True,
-        host='::',
+        host='0.0.0.0',
         port=3182,
-        threaded=True,
-        ssl_context=('test_certificate.pem', "test_key.pem")
+        threaded=True
     )

@@ -2,9 +2,10 @@ from Cryptodome.Cipher import AES
 from Cryptodome import Random
 from base64 import *
 import hashlib
+import bcrypt
 import random
 import string
-import re
+
 
 def encrypt(raw, key):
     BS = 16
@@ -24,7 +25,7 @@ def decrypt(enc, key):
     return unpad(cipher.decrypt(enc[AES.block_size:])).decode('utf-8')
 
 
-def hash(s):
+def hash_sha512(s):
     h = hashlib.new("sha512")
     h.update(str(s).encode())
     return h.hexdigest()
@@ -34,18 +35,10 @@ def random_string(length):
     return "".join(random.SystemRandom().choice(string.ascii_letters + string.digits) for _ in range(length))
 
 
-def check_if_hash(check_hash):
-    match = re.match("^[0123456789abcdef]*$", check_hash)
-    return (match is not None) and (len(check_hash) == 128)
-
-def hash_pwd(pwd, salt):
-    h = hashlib.new("sha512")
-    h.update(str(salt + pwd).encode())
-    return h.hexdigest()
+def hash_pwd(pwd):
+    salt = bcrypt.gensalt(rounds=15)
+    return str(bcrypt.hashpw(bytes(pwd, encoding="utf-8"), salt), encoding="utf-8")
 
 
-def gen_salt_and_hash(pwd):
-    salt = random_string(30)
-    h = hashlib.new("sha512")
-    h.update(str(salt + pwd).encode())
-    return h.hexdigest(), salt
+def check_pwd(pwd, pwd_hash):
+    return bcrypt.checkpw(bytes(pwd, encoding="utf-8"), bytes(pwd_hash, encoding="utf-8"))

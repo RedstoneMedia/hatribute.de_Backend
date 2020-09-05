@@ -162,7 +162,7 @@ def sub_homework_to_dict(sub_homework):
 
 def add_homework(exercise, subject, sub_exercises, due_date):
     school_class = get_school_class_by_user()
-    if school_class.id:
+    if school_class.id != None:
         user_school = get_school_by_user()
         due_date = datetime.strptime(due_date, "%Y-%m-%d")
         new_homework_entry = HomeworkLists(Exercise=exercise, DonePercentage=0, Subject=subject, SchoolClassId=school_class.id, Due=due_date, CreatorId=g.user.id)

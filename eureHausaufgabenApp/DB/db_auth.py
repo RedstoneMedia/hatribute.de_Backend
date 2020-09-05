@@ -19,17 +19,16 @@ def login(email, password, stay_logged_in , secret_key):
         return {"right": False}, 401
 
     original_hash_pwd = user.HashedPwd
-    check_pwd_hash = crypto_util.hash_pwd(password, user.Salt)
-    if original_hash_pwd == check_pwd_hash:
+    if crypto_util.check_pwd(password, original_hash_pwd):
         app.logger.info(f"Right password for user with email : '{email}'")
         user.StayLoggedIn = stay_logged_in
-        session = gen_new_session(check_pwd_hash, email, secret_key, user)
+        session, expires, _ = gen_new_session(user)
         data = {
             'right': True,
             'session': {
                 'right': True,
-                'session': session[0],
-                'expires': session[1]
+                'session': session,
+                'expires': expires
             }
         }
         return data, 200
@@ -38,12 +37,11 @@ def login(email, password, stay_logged_in , secret_key):
         return {"right": False}, 401
 
 
-def gen_new_session(check_pwd_hash, email, secret_key, user, old_session=None):
-
-    # pop sessions until the amount of sessions is at the maximum
+def gen_new_session(user, old_session=None):
+    # Pop sessions until the amount of sessions is at the maximum
     while Sessions.query.filter_by(UserId=user.id).count() >= app.config["SESSION_PER_USER_LIMIT"]:
         next_session = None
-        # make sure that the picked session is not the current session
+        # Make sure that the picked session is not the current session
         for s in Sessions.query.filter_by(UserId=user.id).order_by(Sessions.Actions):
             if s != old_session:
                 next_session = s
@@ -53,21 +51,11 @@ def gen_new_session(check_pwd_hash, email, secret_key, user, old_session=None):
     actions = 0
     if old_session:
         actions = old_session.Actions
-        pop_session(old_session)  # pop old session
-    new_session = Sessions(UserId=user.id, Actions=actions)  # create new session and inherit UserId and actions
-    pwd_and_email = check_pwd_hash+email
-    random_string = crypto_util.random_string(30)
-    real_ip = request.environ.get('HTTP_X_REAL_IP', request.remote_addr)
-    session_id = crypto_util.hash(pwd_and_email + random_string)
-    nonce = crypto_util.random_string(30)
-    store_new_session_nonce(new_session, nonce)
-    expires = save_session(user, new_session, crypto_util.hash(session_id + real_ip + nonce), expires=app.config["SESSION_EXPIRE_TIME_MINUTES"])
-    key = str(secret_key)
-    key = key.encode()
-    key = hashlib.sha256(key).digest()
-    session = '{"session-id":"' + session_id + '", "session-nonce":"' + nonce + '"}'
-    enc = crypto_util.encrypt(bytes(str(session), encoding="utf-8"), key)
-    return binascii.hexlify(enc).decode("utf-8"), expires, new_session
+        pop_session(old_session)  # Pop old session
+    new_session = Sessions(UserId=user.id, Actions=actions)  # Create new session and inherit UserId and actions
+    session_id = crypto_util.random_string(60)
+    expires = save_session(user, new_session, crypto_util.hash_sha512(session_id), expires=app.config["SESSION_EXPIRE_TIME_MINUTES"])
+    return session_id, expires, new_session
 
 
 def save_session(user, session, sessionHash, expires):
@@ -76,15 +64,9 @@ def save_session(user, session, sessionHash, expires):
         session.SessionExpires = str(datetime.now() + timedelta(minutes=expires))
     else:
         session.SessionExpires = str(datetime.now() + timedelta(days=app.config["SESSION_EXPIRE_TIME_STAY_LOGGED_IN_DAYS"]))
-    db.session.add(user)
-    db.session.commit()
-    return session.SessionExpires
-
-
-def store_new_session_nonce(session, nonce):
-    session.SessionNonce = nonce
     db.session.add(session)
     db.session.commit()
+    return session.SessionExpires
 
 
 def logout():
@@ -109,44 +91,23 @@ def register_action(session):
         app.logger.error(traceback.format_exc())
 
 
+def check_session(session_id):
+    # Hash the session id with sha512
+    hashed_session_id = crypto_util.hash_sha512(session_id)
 
-def check_session(secret_key, enc_session):
-    try:
-        key = str(secret_key)
-        key = key.encode()
-        key = hashlib.sha256(key).digest()
-
-        enc_session = binascii.unhexlify(enc_session)
-        session = crypto_util.decrypt(enc_session, key)
-
-    except Exception as e:
-        app.logger.info("Provided session data could not be decrypted")
-        return False, {"session": {"right": False}}, None
-
-    try:
-        session = json.loads(session, encoding="utf-8")
-        session_id = session["session-id"]
-        session_nonce = session["session-nonce"]
-    except Exception as e:
-        app.logger.info("Provided session data did not contain the required json data")
-        return False, {"session": {"right": False}}, None
-
-    real_ip = request.environ.get('HTTP_X_REAL_IP', request.remote_addr)
-    session = crypto_util.hash(session_id + real_ip + session_nonce)
-
-    found_session = Sessions.query.filter_by(HashedSessionID=session).first()
+    # Search for user with that hashed session id
+    found_session = Sessions.query.filter_by(HashedSessionID=hashed_session_id).first()
     if found_session:
         if found_session.SessionExpires:
-            expires = datetime.strptime(found_session.SessionExpires, '%Y-%m-%d %H:%M:%S.%f')
+            user = Users.query.filter_by(id=found_session.UserId).first()  # Get user from session
+
+            expires = datetime.strptime(found_session.SessionExpires, '%Y-%m-%d %H:%M:%S.%f')  # Parse session expire date
             now = datetime.now()
-
-            user = Users.query.filter_by(id=found_session.UserId).first()
-
-            if now >= expires:
+            if now >= expires:  # Check if session expired
                 pop_session(found_session)
                 app.logger.info(f"Session expired for user : {user.Email}")
                 delete_all_really_old_sessions()
-                return False, {"session": {"right": False}}, user
+                return None, {"session": {"right": False}}, None
             else:
                 data = {
                     'session': {
@@ -154,18 +115,18 @@ def check_session(secret_key, enc_session):
                     }
                 }
                 register_action(found_session)
-                # check if session is about to expire and if it is create a new session and update the expiration date
+                # Check if session is about to expire and if it is, create a new session and update the expiration date
                 if now >= (expires - timedelta(hours=0, minutes=app.config["SESSION_EXPIRE_TIME_MINUTES"] / 2)) or (user.StayLoggedIn and now >= (expires - (timedelta(days=app.config["SESSION_EXPIRE_TIME_STAY_LOGGED_IN_DAYS"]) - timedelta(minutes=app.config["SESSION_EXPIRE_TIME_MINUTES"] / 2)))):
-                    new_encrypted_session, new_expire_time, new_session = gen_new_session(user.HashedPwd, user.Email, secret_key, user, found_session)
+                    new_encrypted_session, new_expire_time, new_session = gen_new_session(user, found_session)
                     data["session"]["session"] = new_encrypted_session
                     data["session"]["expires"] = new_expire_time
                 else:
                     new_session = found_session
                 delete_all_really_old_sessions()
-                return user, data, None, new_session
+                return user, data, new_session
     else:
         app.logger.info(f"Session was not found")
-        return False, {"session": {"right": False}}, None
+        return None, {"session": {"right": False}}, None
 
 
 def pop_session(session):
@@ -180,21 +141,20 @@ def pop_all_user_sessions(user):
         pop_session(session)
 
 
-def before_request(data):
-    try:
+def before_request(data: dict):
+    if "session" in data:
         session = data["session"]
-        other, s_data, user_when_expired, session_db_object = check_session(app.config["secret-key"], session)
-    except Exception as e:
-        g.user = None
-        g.data = None
-        g.session_db_object = None
-        return False
-    g.data = s_data
-    if other and session_db_object:
-        g.user = other
-        g.session_db_object = session_db_object
-        app.logger.info("Session was right")
+        user, return_data, session_db_object = check_session(session)
+        g.data = return_data
+        if user:
+            g.user = user
+            g.session_db_object = session_db_object
+            app.logger.info("Session was right")
+        else:
+            g.user = None
+            g.session_db_object = None
     else:
+        g.data = None
         g.user = None
         g.session_db_object = None
 
