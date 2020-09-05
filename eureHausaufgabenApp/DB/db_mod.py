@@ -4,10 +4,12 @@ from sqlalchemy import and_
 from eureHausaufgabenApp import db, app
 from eureHausaufgabenApp.models import ClassReports
 from eureHausaufgabenApp.models import Users
+from eureHausaufgabenApp.models import SubHomeworkLists
+from eureHausaufgabenApp.models import SchoolClasses
 
 
-def delete_reports(sub_homework):
-    reports = ClassReports.query.filter_by(SubHomeworkId=sub_homework.id)
+def delete_reports(sub_homework: SubHomeworkLists):
+    reports = sub_homework.Reports
     for i in reports:
         db.session.delete(i)
     db.session.commit()
@@ -47,8 +49,8 @@ def sub_homework_report_execution_remove_points_and_delete(report, reportedUser,
     db.session.commit()
 
 
-def get_most_important_report(sub_homework):
-    reports = ClassReports.query.filter_by(SubHomeworkId=sub_homework.id)
+def get_most_important_report(sub_homework: SubHomeworkLists):
+    reports = sub_homework.Reports
     most_important_reports = None
     for report in reports:
         if not most_important_reports:
@@ -66,15 +68,14 @@ def sub_homework_report_execution(sub_homework):
         sub_homework_report_execution_remove_points_and_delete(most_important_report, user, sub_homework, role)
 
 
-
-def report_sub_homework(homework_id, sub_homework_id, type):
-    sub_homework = get_sub_homework_from_id(homework_id, sub_homework_id)
+def report_sub_homework(sub_homework_id, type):
+    sub_homework = get_sub_homework_from_id(sub_homework_id)
     if sub_homework:
         if g.user.Role == -1:  # if user is banned
             return 200 # fuck of
         school_class = get_school_class_by_user()
         if school_class:
-            report = ClassReports(Type=type, ByUserId=g.user.id, SchoolClassId=school_class.id, HomeworkListId=homework_id, SubHomeworkId=sub_homework_id)
+            report = ClassReports(Type=type, ByUserId=g.user.id, SchoolClassId=school_class.id, SubHomeworkId=sub_homework_id)
             db.session.add(report)
             db.session.commit()
             sub_homework_report_execution(sub_homework)
@@ -89,7 +90,7 @@ def get_report_type_count(report, type):
 
 
 def has_reported_sub_homework(sub_homework):
-    report = ClassReports.query.filter(and_(ClassReports.SubHomeworkId == sub_homework.id, ClassReports.ByUserId ==g.user.id)).first()
+    report = ClassReports.query.filter(and_(ClassReports.SubHomeworkId == sub_homework.id, ClassReports.ByUserId == g.user.id)).first()
     if report:
         return True
     return False
@@ -112,9 +113,8 @@ def get_report_as_dict(report):
     report = {
         "type" : report_type_to_string(report),
         "reportCreator" : user_to_dict(get_user_by_id(report.ByUserId)),
-        "reportedUser" : user_to_dict(get_user_by_id(get_sub_homework_from_id(report.HomeworkListId, report.SubHomeworkId).UserId)),
-        "reportSubHomeworkId" : report.SubHomeworkId,
-        "reportHomeworkId" : report.HomeworkListId
+        "reportedUser" : user_to_dict(get_user_by_id(get_sub_homework_from_id(report.SubHomeworkId).UserId)),
+        "reportSubHomeworkId" : report.SubHomeworkId
     }
     return report
 
@@ -122,9 +122,9 @@ def get_report_as_dict(report):
 def get_reports():
     if g.user.Role < 2:
         return 401
-    school_class = get_school_class_by_user()
+    school_class = get_school_class_by_user()  # type: SchoolClasses
     if school_class:
-        reports = ClassReports.query.filter_by(SchoolClassId=school_class.id)
+        reports = school_class.Reports
         reports_dict = []
         for report in reports:
             reports_dict.append(get_report_as_dict(report))
@@ -133,10 +133,10 @@ def get_reports():
     return 401
 
 
-def reset_sub_homework_from_mod(homeworkId, subHomeworkId):
+def reset_sub_homework_from_mod(subHomeworkId):
     if not g.user.Role >= 2:
         return 401
-    sub_homework = get_sub_homework_from_id(homeworkId, subHomeworkId)
+    sub_homework = get_sub_homework_from_id(subHomeworkId)
     if sub_homework:
         user = get_user_by_id(sub_homework.UserId)
         most_important_report = get_most_important_report(sub_homework)

@@ -9,6 +9,7 @@ from eureHausaufgabenApp import db, app
 from eureHausaufgabenApp.models import Users, Sessions
 import time
 import traceback
+import operator
 
 
 def login(email, password, stay_logged_in , secret_key):
@@ -37,12 +38,12 @@ def login(email, password, stay_logged_in , secret_key):
         return {"right": False}, 401
 
 
-def gen_new_session(user, old_session=None):
+def gen_new_session(user: Users, old_session=None):
     # Pop sessions until the amount of sessions is at the maximum
-    while Sessions.query.filter_by(UserId=user.id).count() >= app.config["SESSION_PER_USER_LIMIT"]:
+    while len(user.ActiveSessions) >= app.config["SESSION_PER_USER_LIMIT"]:
         next_session = None
         # Make sure that the picked session is not the current session
-        for s in Sessions.query.filter_by(UserId=user.id).order_by(Sessions.Actions):
+        for s in sorted(user.ActiveSessions, key=operator.attrgetter("Actions")):
             if s != old_session:
                 next_session = s
                 break
@@ -96,10 +97,10 @@ def check_session(session_id):
     hashed_session_id = crypto_util.hash_sha512(session_id)
 
     # Search for user with that hashed session id
-    found_session = Sessions.query.filter_by(HashedSessionID=hashed_session_id).first()
+    found_session = Sessions.query.filter_by(HashedSessionID=hashed_session_id).first()  # type: Sessions
     if found_session:
         if found_session.SessionExpires:
-            user = Users.query.filter_by(id=found_session.UserId).first()  # Get user from session
+            user = found_session.user
 
             expires = datetime.strptime(found_session.SessionExpires, '%Y-%m-%d %H:%M:%S.%f')  # Parse session expire date
             now = datetime.now()
@@ -135,8 +136,8 @@ def pop_session(session):
     g.session_db_object = None
 
 
-def pop_all_user_sessions(user):
-    sessions = Sessions.querry.filter_by(UserId=user.id)
+def pop_all_user_sessions(user: Users):
+    sessions = user.ActiveSessions
     for session in sessions:
         pop_session(session)
 

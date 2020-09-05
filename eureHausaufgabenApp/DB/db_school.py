@@ -9,8 +9,7 @@ from eureHausaufgabenApp.models import HomeworkLists
 
 
 def get_school_by_user():
-    school = Schools.query.filter_by(id=g.user.SchoolId).first()
-    return school
+    return g.user.school
 
 
 def is_user_in_users_school(user_a, user_b):
@@ -22,13 +21,13 @@ def get_school_class_by_user():
     if not school:
         return
 
-    school_class = SchoolClasses.query.filter_by(id=g.user.SchoolClassId).first()
+    school_class = g.user.school_class
     if school_class.SchoolId == school.id:
         return school_class
 
 
-def school_class_to_dict(school_class):
-    homework_list = HomeworkLists.query.filter_by(SchoolClassId=school_class.id)
+def school_class_to_dict(school_class: SchoolClasses):
+    homework_list = school_class.HomeworkList
     school_class_return = {
         "ClassName" : school_class.ClassName,
         "homework" : []

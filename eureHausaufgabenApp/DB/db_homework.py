@@ -11,6 +11,7 @@ from eureHausaufgabenApp.models import HomeworkLists
 from eureHausaufgabenApp.models import Users
 from eureHausaufgabenApp.models import UserViewedHomework
 from eureHausaufgabenApp.models import ClassReports
+from eureHausaufgabenApp.models import SchoolClasses
 
 
 
@@ -93,8 +94,8 @@ def get_due_string(date : date):
 
 
 def remove_past_homework():
-    school_class = get_school_class_by_user()
-    homework_list = HomeworkLists.query.filter_by(SchoolClassId=school_class.id)
+    school_class = get_school_class_by_user()  # type: SchoolClasses
+    homework_list = school_class.HomeworkList
     now = datetime.now().date()
     for homework in homework_list:
         if 0 > (homework.Due-now).days:
@@ -109,14 +110,15 @@ def remove_sub_homework(sub_homework):
     db.session.delete(sub_homework)
     db.session.commit()
 
-def remove_homework(homework):
-    sub_homeworks = SubHomeworkLists.query.filter_by(HomeworkListId=homework.id)
+
+def remove_homework(homework: HomeworkLists):
+    sub_homeworks = homework.SubHomework
     for sub_homework in sub_homeworks:
         remove_sub_homework(sub_homework)
-    view_homework = UserViewedHomework.query.filter_by(HomeworkListId=homework.id)
+    view_homework = homework.UserViewedHomework
     for i in view_homework:
         db.session.delete(i)
-    reports = ClassReports.query.filter_by(HomeworkListId=homework.id)
+    reports = homework.Reports
     for i in reports:
         delete_reports(i)
     db.session.delete(homework)
@@ -129,7 +131,7 @@ def get_school_class_dict_by_user():
         return school_class_to_dict(school_class)
 
 
-def homework_to_dict(homework):
+def homework_to_dict(homework: HomeworkLists):
     due_string, urgent_level = get_due_string(homework.Due)
     homework_ret = {
         "Exercise" : homework.Exercise,
@@ -144,7 +146,7 @@ def homework_to_dict(homework):
     }
     if get_viewed_homework_by_homework_id(homework.id):
         homework_ret["Viewed"] = True
-    sub_homework = SubHomeworkLists.query.filter_by(HomeworkListId=homework.id)
+    sub_homework = homework.SubHomework
     for i in sub_homework:
         homework_ret["SubHomework"].append(sub_homework_to_dict(i))
     return homework_ret
@@ -154,7 +156,7 @@ def sub_homework_to_dict(sub_homework):
     return {
         "Exercise" : sub_homework.Exercise,
         "Done" : sub_homework.Done,
-        "User" : user_to_dict(Users.query.filter_by(id=sub_homework.UserId).first()),
+        "User" : user_to_dict(sub_homework.User),
         "id" : sub_homework.id,
         "reported" : has_reported_sub_homework(sub_homework)
     }
@@ -184,16 +186,12 @@ def get_viewed_homework_by_user(user):
     return UserViewedHomework.query.filter_by(UserId=user.id)
 
 
-def get_sub_homework_from_id(homework_id, sub_homework_id):
-    homework = HomeworkLists.query.filter_by(id=homework_id).first()
-    if homework.SchoolClassId == get_school_class_by_user().id:  # check if user is in right class
-        sub_homework = SubHomeworkLists.query.filter_by(id=sub_homework_id).first()
-        if sub_homework.HomeworkListId == homework.id:
-            return sub_homework
+def get_sub_homework_from_id(sub_homework_id):
+    return SubHomeworkLists.query.filter_by(id=sub_homework_id).first()
 
 
-def register_user_for_sub_homework(homework_id, sub_homework_id):
-    sub_homework = get_sub_homework_from_id(homework_id, sub_homework_id)
+def register_user_for_sub_homework(sub_homework_id):
+    sub_homework = get_sub_homework_from_id(sub_homework_id)
     if sub_homework:
         if not sub_homework.UserId:  # check if no one has registered yet
             sub_homework.UserId = g.user.id
@@ -204,8 +202,8 @@ def register_user_for_sub_homework(homework_id, sub_homework_id):
     return 401
 
 
-def de_register_user_for_sub_homework(homework_id, sub_homework_id):
-    sub_homework = get_sub_homework_from_id(homework_id, sub_homework_id)
+def de_register_user_for_sub_homework(sub_homework_id):
+    sub_homework = get_sub_homework_from_id(sub_homework_id)
     if sub_homework:
         if sub_homework.Done:
             g.user.Points -= get_sub_homework_add_points()
@@ -213,10 +211,6 @@ def de_register_user_for_sub_homework(homework_id, sub_homework_id):
         reset_sub_homework(sub_homework)
         return 200
     return 401
-
-
-def get_all_sub_homework_by_sub_homework(sub_homework):
-    return SubHomeworkLists.query.filter_by(HomeworkListId=sub_homework.HomeworkListId)
 
 
 def get_sub_homework_add_points():
@@ -227,10 +221,11 @@ def get_sub_homework_add_points():
         points = 15
     return points
 
-def update_homework_done(homework):
+
+def update_homework_done(homework: HomeworkLists):
     done_count = 0
     items_count = 0
-    sub_homework_items = get_all_sub_homework_by_sub_homework(SubHomeworkLists.query.filter_by(HomeworkListId=homework.id).first())
+    sub_homework_items = homework.SubHomework
     for i in sub_homework_items:
         items_count += 1
         if i.Done:
@@ -239,14 +234,14 @@ def update_homework_done(homework):
     db.session.commit()
 
 
-def upload_sub_homework(homework_id, sub_homework_id, files):
-    sub_homework = get_sub_homework_from_id(homework_id, sub_homework_id)
+def upload_sub_homework(sub_homework_id, files):
+    sub_homework = get_sub_homework_from_id(sub_homework_id)
     if sub_homework:
         if len(files) > 10:
             return 403
-        file_util.save_images_in_sub_folder(files, "{}-{}".format(homework_id, sub_homework.id))
+        homework = sub_homework.homework_list
+        file_util.save_images_in_sub_folder(files, "{}-{}".format(sub_homework.HomeworkListId, sub_homework.id))
         sub_homework.Done = True
-        homework = HomeworkLists.query.filter_by(id=homework_id).first()
         update_homework_done(homework)
         g.user.Points += get_sub_homework_add_points()
         db.session.commit()
@@ -271,11 +266,11 @@ def view_homework(homework_id, viewed_homework):
     return True
 
 
-def get_sub_homework_images_url(homework_id, sub_homework_id):
-    sub_homework = get_sub_homework_from_id(homework_id, sub_homework_id)
+def get_sub_homework_images_url(sub_homework_id):
+    sub_homework = get_sub_homework_from_id(sub_homework_id)
     if sub_homework:
-        viewed_homework = get_viewed_homework_by_homework_id(homework_id)
-        if not view_homework(homework_id, viewed_homework):
+        viewed_homework = get_viewed_homework_by_homework_id(sub_homework.HomeworkListId)
+        if not view_homework(sub_homework.HomeworkListId, viewed_homework):
             if not viewed_homework:
                 return 403
         sub_folder = "{}-{}".format(sub_homework.HomeworkListId, sub_homework.id)
@@ -290,11 +285,11 @@ def get_sub_homework_images_url(homework_id, sub_homework_id):
     return 401
 
 
-def get_sub_homework_base64_images(homework_id, sub_homework_id):
-    sub_homework = get_sub_homework_from_id(homework_id, sub_homework_id)
+def get_sub_homework_base64_images(sub_homework_id):
+    sub_homework = get_sub_homework_from_id(sub_homework_id)
     if sub_homework:
-        viewed_homework = get_viewed_homework_by_homework_id(homework_id)
-        if not view_homework(homework_id, viewed_homework):
+        viewed_homework = get_viewed_homework_by_homework_id(sub_homework.HomeworkListId)
+        if not view_homework(sub_homework.HomeworkListId, viewed_homework):
             if not viewed_homework:
                 return 403
         sub_folder = "{}-{}".format(sub_homework.HomeworkListId, sub_homework.id)
@@ -314,7 +309,7 @@ def delete_homework(homework_id):
             return 200
         elif homework.SchoolClassId == g.user.SchoolClassId:
             if check_if_homework_creator(homework):
-                sub_homeworks = SubHomeworkLists.query.filter_by(HomeworkListId=homework.id)
+                sub_homeworks = homework.SubHomework
                 for sub_homework in sub_homeworks:
                     if sub_homework.Done:
                         g.data["success"] = False
@@ -330,7 +325,7 @@ def delete_homework(homework_id):
 def reset_sub_homework(sub_homework):
     sub_homework.Done = False
     sub_homework.UserId = None
-    homework = HomeworkLists.query.filter_by(id=sub_homework.HomeworkListId).first()
+    homework = sub_homework.homework_list
     update_homework_done(homework)
     sub_folder = "{}-{}".format(sub_homework.HomeworkListId, sub_homework.id)
     count = file_util.get_image_count_in_sub_folder(sub_folder)

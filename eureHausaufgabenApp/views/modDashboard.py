@@ -17,7 +17,7 @@ def get_reports(data: dict):
 @modDashboard.route("/reset_sub_homework", methods=['POST'])
 @only_with_session
 def reset_sub_homework(data: dict):
-    error_code = db_mod.reset_sub_homework_from_mod(data["homework_id"], data["sub_homework_id"])
+    error_code = db_mod.reset_sub_homework_from_mod(data["sub_homework_id"])
     return json.dumps(g.data), error_code
 
 
