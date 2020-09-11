@@ -1,0 +1,9 @@
+flask
+sqlalchemy
+pycryptodomex
+flask_sqlalchemy
+flask_cors
+Pillow
+bcrypt
+uwsgi
+pymysql

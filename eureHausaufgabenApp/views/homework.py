@@ -3,22 +3,23 @@ import json
 from flask import Blueprint, request, g
 from eureHausaufgabenApp.DB import db_homework
 from eureHausaufgabenApp.DB import db_mod
+from eureHausaufgabenApp.DB import db_course
 
 from eureHausaufgabenApp.util.decorators import only_with_session
 
 homework = Blueprint('homework', __name__)
 
-@homework.route("/get_school_class", methods=['POST'])
+@homework.route("/get_user_courses", methods=['POST'])
 @only_with_session
-def get_school_class(data : dict):
-    error_code = db_homework.get_school_class_data()
+def get_user_courses(data : dict):
+    error_code = db_course.get_user_courses()
     return json.dumps(g.data), error_code
 
 
 @homework.route("/add_homework", methods=['POST'])
 @only_with_session
 def add_homework(data : dict):
-    error_code = db_homework.add_homework(data["exercise"], data["subject"], data["subExercises"], data["dueDate"])
+    error_code = db_homework.add_homework(data["exercise"], int(data["course_id"]), data["subExercises"], data["dueDate"])
     return json.dumps(g.data), error_code
 
 
@@ -70,4 +71,3 @@ def delete_homework(data : dict):
 def report_sub_image(data : dict):
     error_code = db_mod.report_sub_homework(data["sub_homework_id"], data["type"])
     return json.dumps(g.data), error_code
-

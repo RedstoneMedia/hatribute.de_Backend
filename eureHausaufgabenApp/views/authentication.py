@@ -17,7 +17,7 @@ def login(data : dict):
     email = str(data["email"])
     password = str(data["password"])
     stay_logged_in = bool(data["stay_logged_in"])
-    res, error_code = db_auth.login(email, password, stay_logged_in, app.config["secret-key"])
+    res, error_code = db_auth.login(email, password, stay_logged_in)
     return json.dumps(res), error_code
 
 
@@ -27,10 +27,10 @@ def sign_in(data: dict):
     handel_session_request(data)
     name = str(data["name"])
     school = str(data["school"]).lower().replace(" ", "-").replace("_", "-")
-    school_class = str(data["school_class"]).upper()
     email = str(data["email"])
     password = str(data["password"])
-    res, error_code = eureHausaufgabenApp.DB.db_user.create_user(email, name, school, school_class, password)
+    first_time_sign_in_token = str(data["first_time_sign_in_token"])
+    res, error_code = eureHausaufgabenApp.DB.db_user.create_user(email, name, school, password, first_time_sign_in_token)
     return res, error_code
 
 

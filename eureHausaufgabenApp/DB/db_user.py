@@ -5,7 +5,7 @@ from sqlalchemy import and_
 
 from eureHausaufgabenApp import Users, db, app
 from eureHausaufgabenApp.models import Schools
-from eureHausaufgabenApp.models import SchoolClasses
+from eureHausaufgabenApp.models import Courses
 from eureHausaufgabenApp.util import crypto_util
 
 
@@ -46,11 +46,10 @@ def reset_account():
 
 
 
-def create_user(email, name, school_name, school_class_name, password):
+def create_user(email, name, school_name, password, first_time_sign_in_token):
     school = Schools.query.filter_by(Name=school_name).first()
-    school_class = SchoolClasses.query.filter_by(ClassName=school_class_name).first()
     email_already_used = Users.query.filter_by(Email=email).first()
-    name_and_not_active = Users.query.filter(and_(Users.Username == name, Users.HashedPwd == None)).first()
+    name_and_not_active = Users.query.filter(and_(Users.Username == name, Users.HashedPwd == None, Users.FirstTimeSignInToken == first_time_sign_in_token)).first()  # type: Users
 
     if not len(password) > 6:
         return "Forbidden Password must be at least 7 characters long", 403
@@ -58,8 +57,9 @@ def create_user(email, name, school_name, school_class_name, password):
     # check if school and school class is set (you need to set this before you can create a account)
     # check if the email has not been used yet (so don't set it in the database when registering a new user to the system)
     # check if the name is already registered (you need to set this before you can create a account)
-    if school != None and school_class != None and email_already_used == None and name_and_not_active != None and password != None:
+    if school != None and email_already_used == None and name_and_not_active != None and password != None:
         name_and_not_active.Email = email
+        name_and_not_active.FirstTimeSignInToken = None
         hashed_password = crypto_util.hash_pwd(password)
         name_and_not_active.HashedPwd = hashed_password
         name_and_not_active.StayLoggedIn = False

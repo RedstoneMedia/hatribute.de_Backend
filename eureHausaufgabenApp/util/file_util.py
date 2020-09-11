@@ -5,18 +5,20 @@ from base64 import decodebytes, b64encode
 from threading import Thread
 import shutil
 
+HOMEWORK_SAVE_DIR = "homework"
+
 def remove_sub_folder(sub_folder):
-    shutil.rmtree("Homework\\" + sub_folder)
+    shutil.rmtree(os.path.join(HOMEWORK_SAVE_DIR, sub_folder))
 
 def get_image_count_in_sub_folder(sub_folder):
-    folder_path = "Homework\\{}".format(sub_folder)
+    folder_path = os.path.join(HOMEWORK_SAVE_DIR, sub_folder)
     if os.path.exists(folder_path):
         return len([name for name in os.listdir(folder_path) if os.path.isfile(os.path.join(folder_path, name))])
     return 0
 
 
 def copy_sub_images(sub_folder, copy_to_folder):
-    folder_path = "Homework\\{}".format(sub_folder)
+    folder_path = os.path.join(HOMEWORK_SAVE_DIR, sub_folder)
     if not os.path.exists(copy_to_folder):
         os.mkdir(copy_to_folder)
     else:
@@ -53,8 +55,8 @@ def _delete_temp_sub_image_folder(wait_time, temp_folder):
 def get_images_in_sub_folder_as_base64(sub_folder):
     base64_images = []
     for i in range(get_image_count_in_sub_folder(sub_folder)):
-        folder_path = "Homework\\{}".format(sub_folder)
-        base64_images.append(get_base64image_from_path("{}\\{}.jpg".format(folder_path, i)))
+        folder_path = os.path.join(HOMEWORK_SAVE_DIR, sub_folder)
+        base64_images.append(get_base64image_from_path(os.path.join(folder_path, str(i))))
     return base64_images
 
 def get_base64image_from_path(path):
@@ -65,13 +67,13 @@ def get_base64image_from_path(path):
     return encoded_string
 
 def save_images_in_sub_folder(images, sub_folder):
-    folder_path = "Homework\\{}".format(sub_folder)
+    folder_path = os.path.join(HOMEWORK_SAVE_DIR, sub_folder)
     if os.path.isdir(folder_path):
         pass
     else:
         os.mkdir(folder_path)
         for i, image in enumerate(images):
-            save_image_from_b64_string(image, "{}\\{}".format(sub_folder, i))
+            save_image_from_b64_string(image, os.path.join(sub_folder, str(i)))
 
 
 def save_image_from_b64_string(image_data : str, image_name):
@@ -82,14 +84,14 @@ def save_image_from_b64_string(image_data : str, image_name):
         base64 = image_info[1].split(",")
         if image_type_info[0] == "image" and base64[0] == "base64":
             base64_string = base64[1]
-            image_path = "Homework\\{}.{}".format(image_name, image_type_info[1])
+            image_path = os.path.join(HOMEWORK_SAVE_DIR, f"{image_name}.{image_type_info[1]}")
             with open(image_path, "wb") as fh:
                 fh.write(decodebytes(bytes(base64_string, encoding="utf-8")))
             fh.close()
             im = Image.open(image_path)
             rgb_im = im.convert('RGB')  # remove alpha
             rgb_im.thumbnail((2560, 1440))  # limit image size to Q HD
-            rgb_im.save("Homework\\{}.jpg".format(image_name), optimize=True, quality=60)  # save as jpg
+            rgb_im.save(os.path.join(HOMEWORK_SAVE_DIR, f"{image_name}.jpg"), optimize=True, quality=60)  # save as jpg
             del im, rgb_im
 
             if image_type_info[1] != "jpg":

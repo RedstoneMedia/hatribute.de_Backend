@@ -1,12 +1,12 @@
 from flask import Flask
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
-import binascii
-from Cryptodome import Random
 from .util.file_util import delete_all_temp_sub_image_folders
 from flask import has_request_context, request
 from flask.logging import default_handler
 import logging
+from logging.handlers import RotatingFileHandler
+import os
 
 class RequestFormatter(logging.Formatter):
     def format(self, record):
@@ -22,11 +22,32 @@ class RequestFormatter(logging.Formatter):
 formatter = RequestFormatter(
     '[%(asctime)s] %(remote_addr)s requested %(url)s %(levelname)s in %(module)s: %(message)s'
 )
+
+file_logging_handler = RotatingFileHandler(
+    filename="logs/flask_app.log",
+    maxBytes=10000,
+    encoding="utf-8"
+)
+file_logging_handler.setFormatter(formatter)
+file_logging_handler.setLevel(logging.ERROR)
 default_handler.setFormatter(formatter)
 
 app = Flask(__name__)
+app.logger.addHandler(file_logging_handler)
+
+
 app.config.from_object('config')
-app.config["secret-key"] = binascii.hexlify(Random.new().read(64))
+
+if "USE_PRODUCTION_DB" in os.environ:
+    app.config["SQLALCHEMY_DATABASE_URI"] = f"mysql+pymysql://{os.environ['MYSQL_USER']}:{os.environ['MYSQL_PASSWORD']}@{os.environ['MYSQL_HOST']}/{os.environ['MYSQL_DATABASE']}"
+else:
+    app.config["SQLALCHEMY_DATABASE_URI"] = app.config["DEBUG_SQLALCHEMY_DATABASE_URI"]
+if "TEMP_IMAGE_FOLDER" in os.environ:
+    app.config["TEMP_IMAGE_FOLDER"] = os.environ["TEMP_IMAGE_FOLDER"]
+else:
+    app.config["TEMP_IMAGE_FOLDER"] = app.config["DEBUG_TEMP_IMAGE_FOLDER"]
+
+
 db = SQLAlchemy(app)
 CORS(app)
 from .models import Users

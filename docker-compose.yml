@@ -1,0 +1,55 @@
+version: "3.8"
+
+services:
+
+  nginx:
+    build:
+      context: nginx
+    restart: always
+    container_name: nginx
+    depends_on:
+      - flask
+    ports:
+      - 3182:3182
+      - 80:80
+    volumes:
+      - "temp_homework_files:/usr/share/nginx/html/assets/temp_homework_files"
+
+  flask:
+    build: ./
+    depends_on:
+      - mariadb
+    container_name: flask
+    restart: always
+    environment:
+      APP_NAME: "eure_hausaufgaben_backend"
+      MYSQL_DATABASE: "eure_hausaufgaben_db"
+      MYSQL_USER: "eure_hausaufgaben_netz"
+      MYSQL_PASSWORD: "test"
+      MYSQL_HOST: "mariadb"
+      USE_PRODUCTION_DB: "true"
+      TEMP_IMAGE_FOLDER: "temp_homework_files"
+    expose:
+      - 3182
+    volumes:
+      - "./logs:/app/logs"
+      - "./homework:/app/homework"
+      - "temp_homework_files:/app/temp_homework_files"
+
+  mariadb:
+    image: mariadb:latest
+    restart: always
+    container_name: mariadb
+    environment:
+      MYSQL_ROOT_PASSWORD : test
+      MYSQL_DATABASE : eure_hausaufgaben_db
+      MYSQL_USER : eure_hausaufgaben_netz
+      MYSQL_PASSWORD : test
+    volumes:
+      - db_data:/var/lib/mysql
+    ports:
+      - 3306:3306
+
+volumes:
+  db_data:
+  temp_homework_files:

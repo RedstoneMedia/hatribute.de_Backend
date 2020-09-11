@@ -1,24 +1,19 @@
-import hashlib
 from eureHausaufgabenApp.util import crypto_util
 from flask import request, g
-import binascii
 from datetime import datetime
 from datetime import timedelta
 import json
 from eureHausaufgabenApp import db, app
 from eureHausaufgabenApp.models import Users, Sessions
-import time
 import traceback
 import operator
 
 
-def login(email, password, stay_logged_in , secret_key):
+def login(email, password, stay_logged_in):
     user = Users.query.filter_by(Email=email).first()
-
     if user == None:
         app.logger.info(f"Provided user with email : '{email}' does not exist")
         return {"right": False}, 401
-
     original_hash_pwd = user.HashedPwd
     if crypto_util.check_pwd(password, original_hash_pwd):
         app.logger.info(f"Right password for user with email : '{email}'")

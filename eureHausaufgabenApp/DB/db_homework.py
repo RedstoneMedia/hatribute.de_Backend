@@ -1,3 +1,5 @@
+import os
+
 from flask import g
 from datetime import date
 from datetime import datetime
@@ -11,21 +13,8 @@ from eureHausaufgabenApp.models import HomeworkLists
 from eureHausaufgabenApp.models import Users
 from eureHausaufgabenApp.models import UserViewedHomework
 from eureHausaufgabenApp.models import ClassReports
-from eureHausaufgabenApp.models import SchoolClasses
-
-
-
-def get_school_class_data():
-    school_class_dict = get_school_class_dict_by_user()
-    if g.user.Role == -1:
-        g.data["school_class"] = school_class_dict
-        return 200
-    remove_past_homework()
-    if school_class_dict:
-        g.data["school_class"] = school_class_dict
-        return 200
-    else:
-        return 401
+from eureHausaufgabenApp.models import UserCoursesLists
+from eureHausaufgabenApp.models import Courses
 
 
 def check_if_homework_creator(homework):
@@ -94,12 +83,13 @@ def get_due_string(date : date):
 
 
 def remove_past_homework():
-    school_class = get_school_class_by_user()  # type: SchoolClasses
-    homework_list = school_class.HomeworkList
-    now = datetime.now().date()
-    for homework in homework_list:
-        if 0 > (homework.Due-now).days:
-            remove_homework(homework)
+    courses = get_user_courses_by_user()
+    for course in courses:
+        homework_list = course.HomeworkList
+        now = datetime.now().date()
+        for homework in homework_list:
+            if 0 > (homework.Due-now).days:
+                remove_homework(homework)
 
 
 def remove_sub_homework(sub_homework):
@@ -125,12 +115,6 @@ def remove_homework(homework: HomeworkLists):
     db.session.commit()
 
 
-def get_school_class_dict_by_user():
-    school_class = get_school_class_by_user()
-    if school_class:
-        return school_class_to_dict(school_class)
-
-
 def homework_to_dict(homework: HomeworkLists):
     due_string, urgent_level = get_due_string(homework.Due)
     homework_ret = {
@@ -138,9 +122,9 @@ def homework_to_dict(homework: HomeworkLists):
         "DonePercentage" : homework.DonePercentage,
         "Due" : due_string,
         "UrgentLevel" : urgent_level,
-        "Subject" : homework.Subject,
         "SubHomework" : [],
         "CreatorId" : homework.CreatorId,
+        "CourseId": homework.CourseId,
         "id" : homework.id,
         "Viewed" : False
     }
@@ -162,12 +146,13 @@ def sub_homework_to_dict(sub_homework):
     }
 
 
-def add_homework(exercise, subject, sub_exercises, due_date):
-    school_class = get_school_class_by_user()
-    if school_class.id != None:
+def add_homework(exercise, course_id, sub_exercises, due_date):
+    user_course_list_item = UserCoursesLists.query.filter_by(CourseId=course_id, UserId=g.user.id).first()  # type: UserCoursesLists
+    if user_course_list_item != None:
+        course = user_course_list_item.course # type: Courses
         user_school = get_school_by_user()
         due_date = datetime.strptime(due_date, "%Y-%m-%d")
-        new_homework_entry = HomeworkLists(Exercise=exercise, DonePercentage=0, Subject=subject, SchoolClassId=school_class.id, Due=due_date, CreatorId=g.user.id)
+        new_homework_entry = HomeworkLists(Exercise=exercise, DonePercentage=0, CourseId=course.id, Due=due_date, CreatorId=g.user.id)
         db.session.add(new_homework_entry)
         db.session.commit()
         for sub_exercise in sub_exercises:
@@ -275,11 +260,11 @@ def get_sub_homework_images_url(sub_homework_id):
                 return 403
         sub_folder = "{}-{}".format(sub_homework.HomeworkListId, sub_homework.id)
         random_folder_string = "{0:s}{1:s}".format(sub_folder, random_string(10))
-        copy_to_folder = "C:\\xampp\\htdocs\\assets\\{0:s}".format(random_folder_string)
+        copy_to_folder = os.path.join(app.config['TEMP_IMAGE_FOLDER'], random_folder_string)
         file_util.copy_sub_images(sub_folder, copy_to_folder)
         image_count_total = file_util.get_image_count_in_sub_folder(sub_folder)
         file_util.delete_temp_sub_image_folder(max(min(image_count_total/4, 30), app.config["DEL_TEMP_SUB_IMAGES_WAIT_TIME"]), copy_to_folder) # start thread that waits a given amount of seconds and then deletes the temporary folder
-        g.data["images_url"] = "assets/{0:s}".format(random_folder_string)
+        g.data["images_url"] = "assets/temp_homework_files/{0:s}".format(random_folder_string)
         g.data["images_total"] = image_count_total
         return 200
     return 401
@@ -307,16 +292,19 @@ def delete_homework(homework_id):
             remove_homework(homework)
             g.data["success"] = True
             return 200
-        elif homework.SchoolClassId == g.user.SchoolClassId:
-            if check_if_homework_creator(homework):
-                sub_homeworks = homework.SubHomework
-                for sub_homework in sub_homeworks:
-                    if sub_homework.Done:
-                        g.data["success"] = False
-                        return 200
-                remove_homework(homework)
-                g.data["success"] = True
-                return 200
+        user_courses = get_user_courses_by_user()
+        if user_courses:
+            if is_course_id_in_courses(user_courses, homework.CourseId):
+                if check_if_homework_creator(homework):
+                    sub_homeworks = homework.SubHomework
+                    for sub_homework in sub_homeworks:
+                        if sub_homework.Done:
+                            g.data["success"] = False
+                            return 200
+                    remove_homework(homework)
+                    g.data["success"] = True
+                    return 200
+                return 401
             return 401
         return 403
     return 403
@@ -334,6 +322,7 @@ def reset_sub_homework(sub_homework):
     db.session.commit()
 
 
-from .db_school import get_school_class_by_user, school_class_to_dict, get_school_by_user
+from .db_course import is_course_id_in_courses, get_user_courses_by_user
+from .db_school import get_school_by_user
 from .db_mod import has_reported_sub_homework, delete_reports
 from .db_user import user_to_dict, get_user_by_id
