@@ -56,9 +56,11 @@ from .views.authentication import authentication
 from .views.homework import homework
 from .views.modDashboard import modDashboard
 from .views.knowledge import knowledge
+from .views.admin_dashboard import admin_dashboard
 app.register_blueprint(authentication)
 app.register_blueprint(homework)
 app.register_blueprint(modDashboard)
 app.register_blueprint(knowledge)
+app.register_blueprint(admin_dashboard)
 
 delete_all_temp_sub_image_folders(app.config["TEMP_IMAGE_FOLDER"], ["img"]) # auto delete temp folders at startup

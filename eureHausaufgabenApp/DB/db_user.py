@@ -20,7 +20,7 @@ def get_user_by_id(user_id):
     return Users.query.filter_by(id=user_id).first()
 
 
-def user_to_dict(user):
+def user_to_dict(user : Users, extended_data=False):
     if user == None:
         return {
             "id" : None,
@@ -28,6 +28,16 @@ def user_to_dict(user):
             "role": None,
             "points" : None,
             "stay_logged_in" : None
+        }
+    if extended_data:
+        return {
+            "id": user.id,
+            "name": str(user.Username),
+            "role": user.Role,
+            "points": user.Points,
+            "school_id": user.SchoolId,
+            "is_active": user.HashedPwd != None,
+            "stay_logged_in": user.StayLoggedIn
         }
     return  {
         "id" : user.id,
@@ -37,13 +47,44 @@ def user_to_dict(user):
         "stay_logged_in": user.StayLoggedIn
     }
 
-def reset_account():
-    app.logger.info(f"Account is being reset for User with email '{g.user.Email}' and name '{g.user.Username}'")
-    g.user.Email = None
-    g.user.HashedPwd = None
-    g.user.Salt = None
+def reset_account_for_user(user : Users):
+    app.logger.info(f"Account is being reset for User with email '{user.Email}' and name '{user.Username}'")
+    user.Email = None
+    user.HashedPwd = None
     db.session.commit()
 
+
+def reset_account():
+    reset_account_for_user(g.user)
+
+
+def remove_deactivated_account(user_id : int):
+    user = get_user_by_id(user_id)
+    if user:
+        if user.HashedPwd == None:
+            db.session.delete(user)
+            db.session.commit()
+        else:
+            return 403
+    else:
+        return 404
+
+
+def generate_new_first_time_sign_in_toke_for_user(user : Users):
+    user.FirstTimeSignInToken = crypto_util.random_string(200)
+    db.session.commit()
+    return user.FirstTimeSignInToken
+
+
+def setup_user(user_name : str, school_name : str):
+    school = get_school_by_name(school_name)
+    if school:
+        new_user = Users(Username=user_name, SchoolId=school.id)
+        db.session.add(new_user)
+        g.data["new_first_time_sign_in_token"] = generate_new_first_time_sign_in_toke_for_user(new_user)
+        g.data["new_user_id"] = new_user.id
+    else:
+        return 404
 
 
 def create_user(email, name, school_name, password, first_time_sign_in_token):
@@ -72,3 +113,5 @@ def create_user(email, name, school_name, password, first_time_sign_in_token):
     else:
         app.logger.info(f"Account was not setup because the account information was not right")
         return "Forbidden", 403
+
+from .db_school import get_school_by_name

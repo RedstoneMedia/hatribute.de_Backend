@@ -158,7 +158,7 @@ def get_users_data():
         return 401
 
 
-    if user_courses := get_user_courses_by_user() and g.user.Role == 2:
+    if (user_courses := get_user_courses_by_user()) and g.user.Role == 2:
         users = []
         for course in user_courses: #type: Courses
             for usersCourseList in UserCoursesLists.query.filter_by(CourseId=course.id):  #type: UserCoursesLists
@@ -173,8 +173,8 @@ def get_users_data():
         users = Users.query.all()
         users_dict_list = []
         for user in users:  # type: Users
-            if user.id != g.user.id and user.HashedPwd != None:
-                users_dict_list.append(user_to_dict(user))
+            if user.id != g.user.id:
+                users_dict_list.append(user_to_dict(user, extended_data=True))
         g.data["users"] = users_dict_list
         return 200
     return 403
