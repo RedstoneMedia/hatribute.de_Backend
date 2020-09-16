@@ -36,6 +36,7 @@ class Users(db.Model):
     ActiveSessions = relationship("Sessions", uselist=True, backref="user")
     UserViewedHomework = relationship("UserViewedHomework", uselist=True, backref="user")
     UserCoursesList = relationship("UserCoursesLists", uselist=True, backref="user")
+    Reports = relationship("ClassReports", uselist=True, backref="by_user")
 
 
 class UserCoursesLists(db.Model):
@@ -80,7 +81,7 @@ class SubHomeworkLists(db.Model):
 class ClassReports(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     Type = db.Column(db.Integer)
-    ByUserId = db.Column(db.Integer)
+    ByUserId = db.Column(db.Integer, ForeignKey(Users.id))
     CourseId = db.Column(db.Integer, ForeignKey(Courses.id))
     SubHomeworkId = db.Column(db.Integer, ForeignKey(SubHomeworkLists.id))
     HomeworkListId = db.Column(db.Integer, ForeignKey(HomeworkLists.id))

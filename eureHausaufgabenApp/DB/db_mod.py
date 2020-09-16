@@ -153,6 +153,38 @@ def reset_sub_homework_from_mod(subHomeworkId):
     return 401
 
 
+def remove_one_false_report_and_punish_user_that_reported(report : ClassReports):
+    user_that_reported = report.by_user #type: Users
+    if user_that_reported.Role >= g.user.Role:
+        pass
+    elif report.Type == 1:
+        user_that_reported.Points -= 1
+    elif report.Type == 2:
+        user_that_reported.Points -= 5
+    elif report.Type == 3:
+        user_that_reported.Points -= 5
+    elif report.Type == 4:
+        user_that_reported.Points -= 10
+
+    db.session.delete(report)
+    db.session.commit()
+
+
+def remove_false_report_from_mod(sub_homework_id):
+    if not g.user.Role >= 2:
+        return 401
+    sub_homework = get_sub_homework_from_id(sub_homework_id)
+    if sub_homework:
+        most_important_report = get_most_important_report(sub_homework)
+        if most_important_report:
+            reports = ClassReports.query.filter_by(Type=most_important_report.Type, SubHomeworkId=most_important_report.SubHomeworkId)
+            for report in reports:
+                remove_one_false_report_and_punish_user_that_reported(report)
+            return 200
+        return 404
+    return 404
+
+
 def get_users_data():
     if not g.user.Role >= 2:
         return 401

@@ -54,12 +54,12 @@ from .models import Users
 db.create_all()
 from .views.authentication import authentication
 from .views.homework import homework
-from .views.modDashboard import modDashboard
+from .views.mod_dashboard import mod_dashboard
 from .views.knowledge import knowledge
 from .views.admin_dashboard import admin_dashboard
 app.register_blueprint(authentication)
 app.register_blueprint(homework)
-app.register_blueprint(modDashboard)
+app.register_blueprint(mod_dashboard)
 app.register_blueprint(knowledge)
 app.register_blueprint(admin_dashboard)
 
