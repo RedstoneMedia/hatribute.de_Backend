@@ -207,6 +207,6 @@ def remove_points(user_id, points):
     return 200
 
 
+from .db_user import user_to_dict, get_user_by_id
 from .db_homework import reset_sub_homework, get_sub_homework_from_id, get_viewed_homework_by_user
 from .db_course import get_user_courses_by_user
-from .db_user import user_to_dict, get_user_by_id

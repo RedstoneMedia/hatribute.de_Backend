@@ -2,7 +2,7 @@ from flask import g
 from typing import List
 
 from eureHausaufgabenApp import db, app
-from eureHausaufgabenApp.models import Schools, UserCoursesLists, Courses, HomeworkLists
+from eureHausaufgabenApp.models import Schools, UserCoursesLists, Courses, HomeworkLists, Users
 
 
 def get_user_courses_list_list_by_user() -> List[UserCoursesLists]:
@@ -22,15 +22,18 @@ def get_user_courses_by_user() -> List[Courses]:
     return courses
 
 
-def course_to_dict(course: Courses) -> dict:
+def course_to_dict(course: Courses, include_homework=True) -> dict:
     homework_list = course.HomeworkList
     course_return = {
         "CourseName" : course.CourseName,
         "CourseId" : course.id,
-        "homework" : []
+        "IsDefaultCourse" : course.IsDefaultCourse,
+        "SchoolId" : course.SchoolId
     }
-    for h in homework_list:
-        course_return["homework"].append(homework_to_dict(h))
+    if include_homework:
+        course_return["homework"] = []
+        for h in homework_list:
+            course_return["homework"].append(homework_to_dict(h))
     return course_return
 
 
@@ -45,6 +48,15 @@ def get_courses_dict_list_by_user() -> List[dict]:
     courses_list_items = get_user_courses_list_list_by_user()  # type: List[UserCoursesLists]
     if courses_list_items:
         return courses_list_items_to_dict(courses_list_items)
+
+
+def get_all_courses() -> int:
+    if g.user.Role >= 3:
+        g.data["courses"] = []
+        for course in Courses.query.all():
+            g.data["courses"].append(course_to_dict(course, include_homework=False))
+        return 200
+    return 401
 
 
 def get_user_courses() -> int:
@@ -65,6 +77,24 @@ def is_course_id_in_courses(courses : List[Courses], course_id : int):
         if course.id == course_id:
             return True
     return False
+
+
+def add_course_to_user(user : Users, course : Courses):
+    new_user_course = UserCoursesLists(UserId=user.id, CourseId=course.id)
+    db.session.add(new_user_course)
+    db.session.commit()
+
+
+def remove_all_courses_from_user(user : Users):
+    for user_course in user.UserCoursesList:
+        db.session.delete(user_course)
+    db.session.commit()
+
+
+def add_default_courses_to_user(user : Users):
+    default_courses = Courses.query.filter_by(SchoolId=user.SchoolId, IsDefaultCourse=True)
+    for course in default_courses:
+        add_course_to_user(user, course)
 
 
 from .db_school import get_school_by_user

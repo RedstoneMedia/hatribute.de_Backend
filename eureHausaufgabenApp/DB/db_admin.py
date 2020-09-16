@@ -2,17 +2,16 @@ from flask import g
 
 from eureHausaufgabenApp.util import crypto_util
 from eureHausaufgabenApp import db
-from eureHausaufgabenApp.models import Users
+from eureHausaufgabenApp.models import Users, Courses
 from .db_user import reset_account_for_user, generate_new_first_time_sign_in_toke_for_user, setup_user, remove_deactivated_account
 
 
 def write_user_changes(user_changed_data : dict) -> int:
     if g.user.Role >= 3:
-
         user_id = user_changed_data["id"]
         if user_id == None:
             return 400
-        user_to_modify = Users.query.filter_by(id=user_changed_data["id"]).first()  # type: Users
+        user_to_modify = Users.query.filter_by(id=user_id).first()  # type: Users
 
         if username := user_changed_data["name"]:
             user_to_modify.Username = str(username)
@@ -27,6 +26,24 @@ def write_user_changes(user_changed_data : dict) -> int:
 
         if bool(user_changed_data["is_active"]) == False:
             reset_account_for_user(user_to_modify)
+        db.session.commit()
+        return 200
+    return 401
+
+
+def write_course_changes(course_changed_data : dict) -> int:
+    if g.user.Role >= 3:
+        course_id = course_changed_data["CourseId"]
+        if course_id == None:
+            return 400
+        course_to_modify = Courses.query.filter_by(id=course_id).first()  # type: Courses
+
+        if course_name := course_changed_data["CourseName"]:
+            course_to_modify.CourseName = str(course_name)
+        if school_id := course_changed_data["SchoolId"]:
+            course_to_modify.SchoolId = int(school_id)
+        if is_default_course := course_changed_data["IsDefaultCourse"]:
+            course_to_modify.IsDefaultCourse = bool(is_default_course)
         db.session.commit()
         return 200
     return 401

@@ -7,7 +7,7 @@ class Schools(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     Name = db.Column(db.String(200))
 
-    Classes = relationship("Courses", uselist=True, backref="school")
+    Courses = relationship("Courses", uselist=True, backref="school")
     Users = relationship("Users", uselist=True, backref="school")
 
 
@@ -15,6 +15,7 @@ class Courses(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     CourseName = db.Column(db.String(200))
     SchoolId = db.Column(db.Integer, ForeignKey(Schools.id))
+    IsDefaultCourse = db.Column(db.Boolean(create_constraint=False))
 
     HomeworkList = relationship("HomeworkLists", uselist=True, backref="course")
     Reports = relationship("ClassReports", uselist=True, backref="course")

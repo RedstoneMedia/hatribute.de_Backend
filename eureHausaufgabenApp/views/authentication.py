@@ -1,6 +1,5 @@
 from flask import Blueprint, request, g
 
-import eureHausaufgabenApp.DB.db_user
 from eureHausaufgabenApp.DB import db_auth, db_user
 from eureHausaufgabenApp import app
 import json
@@ -30,7 +29,7 @@ def sign_in(data: dict):
     email = str(data["email"])
     password = str(data["password"])
     first_time_sign_in_token = str(data["first_time_sign_in_token"])
-    res, error_code = eureHausaufgabenApp.DB.db_user.create_user(email, name, school, password, first_time_sign_in_token)
+    res, error_code = db_user.create_user(email, name, school, password, first_time_sign_in_token)
     return res, error_code
 
 
@@ -57,5 +56,5 @@ def check_session(data : dict):
 @authentication.route("/get_data", methods=['POST'])
 @only_with_session
 def get_data(data : dict):
-    eureHausaufgabenApp.DB.db_user.get_user_data()
+    db_user.get_user_data()
     return json.dumps(g.data), 200
