@@ -91,11 +91,45 @@ def remove_all_courses_from_user(user : Users):
     db.session.commit()
 
 
+def remove_course_from_all_users(course: Courses):
+    for user_course in UserCoursesLists.query.filter_by(CourseId=course.id):
+        db.session.delete(user_course)
+    db.session.commit()
+
+
 def add_default_courses_to_user(user : Users):
     default_courses = Courses.query.filter_by(SchoolId=user.SchoolId, IsDefaultCourse=True)
     for course in default_courses:
         add_course_to_user(user, course)
 
 
-from .db_school import get_school_by_user
+def create_course(course_name: str, school_name: str, is_default_course: bool):
+    if g.user.Role >= 3:
+        school = get_school_by_name(school_name)
+        if school:
+            course = Courses(SchoolId=school.id, IsDefaultCourse=is_default_course, CourseName=course_name)
+            db.session.add(course)
+            if course.IsDefaultCourse:
+                for user in Users.query.all(): #type: Users
+                    if user.HashedPwd != None:
+                        add_course_to_user(user, course)
+            db.session.commit()
+            return 200
+        return 404
+    return 401
+
+
+def remove_course(course_id: int):
+    if g.user.Role >= 3:
+        course = Courses.query.filter_by(id=course_id).first() # type: Courses
+        if course:
+            remove_course_from_all_users(course)
+            db.session.delete(course)
+            db.session.commit()
+            return 200
+        return 404
+    return 401
+
+
+from .db_school import get_school_by_user, get_school_by_name
 from .db_homework import homework_to_dict, remove_past_homework

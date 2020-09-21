@@ -48,3 +48,17 @@ def get_all_courses(data : dict):
 def write_course_changes(data : dict):
     error_code = db_admin.write_course_changes(data["course_changes"])
     return json.dumps(g.data), error_code
+
+
+@admin_dashboard.route("/add_course", methods=['POST'])
+@only_with_session
+def add_course(data : dict):
+    error_code = db_course.create_course(data["course_name"], data["school_name"], bool(data["is_default_course"]))
+    return json.dumps(g.data), error_code
+
+
+@admin_dashboard.route("/remove_course", methods=['POST'])
+@only_with_session
+def remove_course(data : dict):
+    error_code = db_course.remove_course(int(data["course_id"]))
+    return json.dumps(g.data), error_code

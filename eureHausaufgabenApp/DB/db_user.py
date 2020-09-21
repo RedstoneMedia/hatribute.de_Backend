@@ -78,10 +78,14 @@ def generate_new_first_time_sign_in_toke_for_user(user : Users):
 def setup_user(user_name : str, school_name : str):
     school = get_school_by_name(school_name)
     if school:
-        new_user = Users(Username=user_name, SchoolId=school.id)
-        db.session.add(new_user)
-        g.data["new_first_time_sign_in_token"] = generate_new_first_time_sign_in_toke_for_user(new_user)
-        g.data["new_user_id"] = new_user.id
+        if Users.query.filter_by(Username=user_name).first() == None:
+            new_user = Users(Username=user_name, SchoolId=school.id)
+            db.session.add(new_user)
+            g.data["new_first_time_sign_in_token"] = generate_new_first_time_sign_in_toke_for_user(new_user)
+            g.data["new_user_id"] = new_user.id
+            return 200
+        g.data["user_already_exists"] = True
+        return 200
     else:
         return 404
 
