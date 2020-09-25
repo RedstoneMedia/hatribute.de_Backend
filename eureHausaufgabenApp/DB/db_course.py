@@ -14,6 +14,10 @@ def get_user_courses_list_list_by_user() -> List[UserCoursesLists]:
     return user_courses_list
 
 
+def get_course_by_course_id(id: int):
+    return Courses.query.filter_by(id=id).first()
+
+
 def get_user_courses_by_user() -> List[Courses]:
     courses = []
     if user_courses_list := get_user_courses_list_list_by_user():
@@ -37,17 +41,17 @@ def course_to_dict(course: Courses, include_homework=True) -> dict:
     return course_return
 
 
-def courses_list_items_to_dict(course_list_items) -> List[dict]:
+def courses_list_items_to_dict(course_list_items, include_homework=True) -> List[dict]:
     courses_return = []
     for course_list_item in course_list_items:
-        courses_return.append(course_to_dict(course_list_item.course))
+        courses_return.append(course_to_dict(course_list_item.course, include_homework=include_homework))
     return courses_return
 
 
-def get_courses_dict_list_by_user() -> List[dict]:
+def get_courses_dict_list_by_user(include_homework=True) -> List[dict]:
     courses_list_items = get_user_courses_list_list_by_user()  # type: List[UserCoursesLists]
     if courses_list_items:
-        return courses_list_items_to_dict(courses_list_items)
+        return courses_list_items_to_dict(courses_list_items, include_homework=include_homework)
 
 
 def get_all_courses() -> int:
@@ -59,8 +63,18 @@ def get_all_courses() -> int:
     return 401
 
 
-def get_user_courses() -> int:
-    courses_dict_list = get_courses_dict_list_by_user()
+def get_all_use_school_courses() -> int:
+    user_school = g.user.school
+    if not user_school:
+        return 404
+    g.data["courses"] = []
+    for course in user_school.Courses:
+        g.data["courses"].append(course_to_dict(course, include_homework=False))
+    return 200
+
+
+def get_user_courses(include_homework=True) -> int:
+    courses_dict_list = get_courses_dict_list_by_user(include_homework=include_homework)
     if g.user.Role == -1:
         g.data["courses"] = courses_dict_list
         return 200
@@ -80,9 +94,20 @@ def is_course_id_in_courses(courses : List[Courses], course_id : int):
 
 
 def add_course_to_user(user : Users, course : Courses):
+    if UserCoursesLists.query.filter_by(UserId=user.id, CourseId=course.id).first():
+        return 400
     new_user_course = UserCoursesLists(UserId=user.id, CourseId=course.id)
     db.session.add(new_user_course)
     db.session.commit()
+    return 200
+
+
+def remove_course_from_user(course: Courses, user: Users):
+    if user_course_entry := UserCoursesLists.query.filter_by(UserId=user.id, CourseId=course.id).first():
+        db.session.delete(user_course_entry)
+        db.session.commit()
+        return 200
+    return 400
 
 
 def remove_all_courses_from_user(user : Users):

@@ -12,8 +12,42 @@ homework = Blueprint('homework', __name__)
 @homework.route("/get_user_courses", methods=['POST'])
 @only_with_session
 def get_user_courses(data : dict):
-    error_code = db_course.get_user_courses()
+    if "include_homework" in data:
+        error_code = db_course.get_user_courses(include_homework=data["include_homework"])
+    else:
+        error_code = db_course.get_user_courses()
     return json.dumps(g.data), error_code
+
+
+@homework.route("/get_all_user_school_courses", methods=['POST'])
+@only_with_session
+def get_all_user_school_courses(data : dict):
+    error_code = db_course.get_all_use_school_courses()
+    return json.dumps(g.data), error_code
+
+
+@homework.route("/add_user_course", methods=['POST'])
+@only_with_session
+def add_user_course(data : dict):
+    if "course_id" in data:
+        course = db_course.get_course_by_course_id(int(data["course_id"]))
+        if course == None:
+            return 404
+        error_code = db_course.add_course_to_user(g.user, course)
+        return json.dumps(g.data), error_code
+    return 400
+
+
+@homework.route("/remove_user_course", methods=['POST'])
+@only_with_session
+def remove_user_course(data : dict):
+    if "course_id" in data:
+        course = db_course.get_course_by_course_id(int(data["course_id"]))
+        if course == None:
+            return 404
+        error_code = db_course.remove_course_from_user(course, g.user)
+        return json.dumps(g.data), error_code
+    return 400
 
 
 @homework.route("/add_homework", methods=['POST'])
