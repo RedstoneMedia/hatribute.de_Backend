@@ -22,7 +22,7 @@ def get_user_courses(data : dict):
 @homework.route("/get_all_user_school_courses", methods=['POST'])
 @only_with_session
 def get_all_user_school_courses(data : dict):
-    error_code = db_course.get_all_use_school_courses()
+    error_code = db_course.get_all_user_school_courses()
     return json.dumps(g.data), error_code
 
 

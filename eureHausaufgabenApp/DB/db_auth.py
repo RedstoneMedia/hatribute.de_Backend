@@ -46,6 +46,7 @@ def gen_new_session(user: Users, old_session=None):
 
     actions = 0
     if old_session:
+        # TODO: Fix sqlalchemy.orm.exc.ObjectDeletedError
         actions = old_session.Actions
         pop_session(old_session)  # Pop old session
     new_session = Sessions(UserId=user.id, Actions=actions)  # Create new session and inherit UserId and actions
@@ -88,6 +89,8 @@ def register_action(session):
 
 
 def check_session(session_id):
+    delete_all_really_old_sessions()
+
     # Hash the session id with sha512
     hashed_session_id = crypto_util.hash_sha512(session_id)
 
@@ -102,7 +105,6 @@ def check_session(session_id):
             if now >= expires:  # Check if session expired
                 pop_session(found_session)
                 app.logger.info(f"Session expired for user : {user.Email}")
-                delete_all_really_old_sessions()
                 return None, {"session": {"right": False}}, None
             else:
                 data = {
@@ -118,14 +120,13 @@ def check_session(session_id):
                     data["session"]["expires"] = new_expire_time
                 else:
                     new_session = found_session
-                delete_all_really_old_sessions()
                 return user, data, new_session
     else:
         app.logger.info(f"Session was not found")
         return None, {"session": {"right": False}}, None
 
 
-def pop_session(session):
+def pop_session(session: Sessions):
     db.session.delete(session)
     db.session.commit()
     g.session_db_object = None

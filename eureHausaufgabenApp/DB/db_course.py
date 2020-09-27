@@ -63,12 +63,12 @@ def get_all_courses() -> int:
     return 401
 
 
-def get_all_use_school_courses() -> int:
+def get_all_user_school_courses() -> int:
     user_school = g.user.school
     if not user_school:
         return 404
     g.data["courses"] = []
-    for course in user_school.Courses:
+    for course in sorted(user_school.Courses, key=lambda course: course.CourseName):
         g.data["courses"].append(course_to_dict(course, include_homework=False))
     return 200
 
