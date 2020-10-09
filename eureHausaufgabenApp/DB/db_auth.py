@@ -33,22 +33,22 @@ def login(email, password, stay_logged_in):
         return {"right": False}, 401
 
 
-def gen_new_session(user: Users, old_session=None):
+def gen_new_session(user: Users, old_session: Sessions=None):
+    #TDOD : Fix sqlalchemy.orm.exc.ObjectDeletedError
+    if old_session:
+        old_session_actions = old_session.Actions
     # Pop sessions until the amount of sessions is at the maximum
     while len(user.ActiveSessions) >= app.config["SESSION_PER_USER_LIMIT"]:
         next_session = None
-        # Make sure that the picked session is not the current session
         for s in sorted(user.ActiveSessions, key=operator.attrgetter("Actions")):
-            if s != old_session:
-                next_session = s
-                break
-        pop_session(next_session)
+            next_session = s
+            break
+        if next_session:
+            pop_session(next_session)
 
     actions = 0
     if old_session:
-        # TODO: Fix sqlalchemy.orm.exc.ObjectDeletedError
-        actions = old_session.Actions
-        pop_session(old_session)  # Pop old session
+        actions = old_session_actions
     new_session = Sessions(UserId=user.id, Actions=actions)  # Create new session and inherit UserId and actions
     session_id = crypto_util.random_string(60)
     expires = save_session(user, new_session, crypto_util.hash_sha512(session_id), expires=app.config["SESSION_EXPIRE_TIME_MINUTES"])
@@ -71,12 +71,12 @@ def logout():
     pop_session(session)
 
 
-def delete_all_really_old_sessions():
+def delete_all_old_sessions():
     sessions = Sessions.query.all()
     now = datetime.now()
     for session in sessions:
         expires = datetime.strptime(session.SessionExpires, '%Y-%m-%d %H:%M:%S.%f')
-        if now >= expires + timedelta(hours=0, days=app.config["REALLY_OLD_SESSIONS_DELETE_AFTER_EXPIRE_DAYS"]):
+        if now >= expires:
             pop_session(session)
 
 
@@ -89,7 +89,7 @@ def register_action(session):
 
 
 def check_session(session_id):
-    delete_all_really_old_sessions()
+    delete_all_old_sessions()
 
     # Hash the session id with sha512
     hashed_session_id = crypto_util.hash_sha512(session_id)
@@ -115,8 +115,8 @@ def check_session(session_id):
                 register_action(found_session)
                 # Check if session is about to expire and if it is, create a new session and update the expiration date
                 if now >= (expires - timedelta(hours=0, minutes=app.config["SESSION_EXPIRE_TIME_MINUTES"] / 2)) or (user.StayLoggedIn and now >= (expires - (timedelta(days=app.config["SESSION_EXPIRE_TIME_STAY_LOGGED_IN_DAYS"]) - timedelta(minutes=app.config["SESSION_EXPIRE_TIME_MINUTES"] / 2)))):
-                    new_encrypted_session, new_expire_time, new_session = gen_new_session(user, found_session)
-                    data["session"]["session"] = new_encrypted_session
+                    new_session_id, new_expire_time, new_session = gen_new_session(user, found_session)
+                    data["session"]["session"] = new_session_id
                     data["session"]["expires"] = new_expire_time
                 else:
                     new_session = found_session
@@ -127,7 +127,9 @@ def check_session(session_id):
 
 
 def pop_session(session: Sessions):
-    db.session.delete(session)
+    # db.session.delete(session)
+    # ^ this dose not work so we have to do this but that's stupid
+    Sessions.query.filter_by(id=session.id).delete(synchronize_session="fetch")
     db.session.commit()
     g.session_db_object = None
 

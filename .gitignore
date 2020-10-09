@@ -7,3 +7,4 @@ logs
 *.pyc
 Homework
 temp_homework_files
+owner_info.json
