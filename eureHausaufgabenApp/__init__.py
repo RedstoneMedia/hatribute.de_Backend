@@ -34,6 +34,7 @@ default_handler.setFormatter(formatter)
 
 app = Flask(__name__)
 app.logger.addHandler(file_logging_handler)
+app.logger.setLevel(logging.DEBUG)
 
 
 app.config.from_object('config')

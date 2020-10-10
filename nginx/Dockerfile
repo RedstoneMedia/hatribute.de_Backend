@@ -1,6 +1,6 @@
-FROM node:latest as intermediate
+# FROM node:latest as intermediate
 
-LABEL stage=intermediate
+# LABEL stage=intermediate
 
 FROM nginx:latest
 

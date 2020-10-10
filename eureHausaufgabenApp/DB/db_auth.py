@@ -7,6 +7,7 @@ from eureHausaufgabenApp import db, app
 from eureHausaufgabenApp.models import Users, Sessions
 import traceback
 import operator
+from sqlalchemy.orm.exc import ObjectDeletedError
 
 
 def login(email, password, stay_logged_in):
@@ -34,11 +35,21 @@ def login(email, password, stay_logged_in):
 
 
 def gen_new_session(user: Users, old_session: Sessions=None):
-    #TDOD : Fix sqlalchemy.orm.exc.ObjectDeletedError
+    app.logger.debug(f"Generating new session")
     if old_session:
-        old_session_actions = old_session.Actions
+        try:
+            old_session_actions = old_session.Actions
+            app.logger.debug(f"Old session is : {old_session.id}")
+        except ObjectDeletedError:
+            old_session = None
+
+    current_active_sessions = len(user.ActiveSessions)
+    if old_session == None:  # if not renewing a session delete one more then normal to account for session that is going to be created
+        current_active_sessions += 1
+
     # Pop sessions until the amount of sessions is at the maximum
-    while len(user.ActiveSessions) >= app.config["SESSION_PER_USER_LIMIT"]:
+    while current_active_sessions > app.config["SESSION_PER_USER_LIMIT"]:
+        current_active_sessions = len(user.ActiveSessions)
         next_session = None
         for s in sorted(user.ActiveSessions, key=operator.attrgetter("Actions")):
             next_session = s
@@ -49,6 +60,8 @@ def gen_new_session(user: Users, old_session: Sessions=None):
     actions = 0
     if old_session:
         actions = old_session_actions
+        pop_session(old_session)
+
     new_session = Sessions(UserId=user.id, Actions=actions)  # Create new session and inherit UserId and actions
     session_id = crypto_util.random_string(60)
     expires = save_session(user, new_session, crypto_util.hash_sha512(session_id), expires=app.config["SESSION_EXPIRE_TIME_MINUTES"])
@@ -63,6 +76,7 @@ def save_session(user, session, sessionHash, expires):
         session.SessionExpires = str(datetime.now() + timedelta(days=app.config["SESSION_EXPIRE_TIME_STAY_LOGGED_IN_DAYS"]))
     db.session.add(session)
     db.session.commit()
+    app.logger.debug(f"New session was Generated with id : {session.id}")
     return session.SessionExpires
 
 
@@ -72,12 +86,16 @@ def logout():
 
 
 def delete_all_old_sessions():
+    app.logger.debug(f"Deleting all old sessions")
     sessions = Sessions.query.all()
     now = datetime.now()
     for session in sessions:
-        expires = datetime.strptime(session.SessionExpires, '%Y-%m-%d %H:%M:%S.%f')
-        if now >= expires:
-            pop_session(session)
+        try:
+            expires = datetime.strptime(session.SessionExpires, '%Y-%m-%d %H:%M:%S.%f')
+            if now >= expires:
+                pop_session(session)
+        except ObjectDeletedError:
+            pass
 
 
 def register_action(session):
@@ -129,6 +147,7 @@ def check_session(session_id):
 def pop_session(session: Sessions):
     # db.session.delete(session)
     # ^ this dose not work so we have to do this but that's stupid
+    app.logger.debug(f"Popping session : {session.id}")
     Sessions.query.filter_by(id=session.id).delete(synchronize_session="fetch")
     db.session.commit()
     g.session_db_object = None
