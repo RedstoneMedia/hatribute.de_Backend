@@ -56,7 +56,7 @@ def get_images_in_sub_folder_as_base64(sub_folder):
     base64_images = []
     for i in range(get_image_count_in_sub_folder(sub_folder)):
         folder_path = os.path.join(HOMEWORK_SAVE_DIR, sub_folder)
-        base64_images.append(get_base64image_from_path(os.path.join(folder_path, str(i))))
+        base64_images.append(get_base64image_from_path(os.path.join(folder_path, f"{i}.jpg")))
     return base64_images
 
 def get_base64image_from_path(path):
