@@ -10,14 +10,14 @@ import operator
 from sqlalchemy.orm.exc import ObjectDeletedError
 
 
-def login(email, password, stay_logged_in):
-    user = Users.query.filter_by(Email=email).first()
+def login(user_name, password, stay_logged_in):
+    user = Users.query.filter_by(Username=user_name).first()
     if user == None:
-        app.logger.info(f"Provided user with email : '{email}' does not exist")
+        app.logger.info(f"Provided user with name : '{user_name}' does not exist")
         return {"right": False}, 401
     original_hash_pwd = user.HashedPwd
     if crypto_util.check_pwd(password, original_hash_pwd):
-        app.logger.info(f"Right password for user with email : '{email}'")
+        app.logger.info(f"Right password for user with name : '{user_name}'")
         user.StayLoggedIn = stay_logged_in
         session, expires, _ = gen_new_session(user)
         data = {
@@ -30,7 +30,7 @@ def login(email, password, stay_logged_in):
         }
         return data, 200
     else:
-        app.logger.info(f"Wrong password for user with email : '{email}'")
+        app.logger.info(f"Wrong password for user with name : '{user_name}'")
         return {"right": False}, 401
 
 

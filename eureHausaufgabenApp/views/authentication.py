@@ -13,10 +13,10 @@ authentication = Blueprint('authentication', __name__)
 @only_json_request
 def login(data : dict):
     handel_session_request(data)
-    email = str(data["email"])
+    user_name = str(data["user_name"])
     password = str(data["password"])
     stay_logged_in = bool(data["stay_logged_in"])
-    res, error_code = db_auth.login(email, password, stay_logged_in)
+    res, error_code = db_auth.login(user_name, password, stay_logged_in)
     return json.dumps(res), error_code
 
 
@@ -24,12 +24,11 @@ def login(data : dict):
 @only_json_request
 def sign_in(data: dict):
     handel_session_request(data)
-    name = str(data["name"])
+    user_name = str(data["user_name"])
     school = str(data["school"]).lower().replace(" ", "-").replace("_", "-")
-    email = str(data["email"])
     password = str(data["password"])
     first_time_sign_in_token = str(data["first_time_sign_in_token"])
-    res, error_code = db_user.create_user(email, name, school, password, first_time_sign_in_token)
+    res, error_code = db_user.create_user(user_name, school, password, first_time_sign_in_token)
     return res, error_code
 
 

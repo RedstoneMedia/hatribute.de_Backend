@@ -81,9 +81,9 @@ def get_user_courses(include_homework=True) -> int:
     remove_past_homework()
     if courses_dict_list:
         g.data["courses"] = courses_dict_list
-        return 200
     else:
-        return 401
+        g.data["courses"] = []
+    return 200
 
 
 def is_course_id_in_courses(courses : List[Courses], course_id : int):

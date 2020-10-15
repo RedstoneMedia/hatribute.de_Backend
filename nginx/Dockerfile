@@ -1,7 +1,5 @@
 # FROM node:latest as intermediate
 
-# LABEL stage=intermediate
-
 FROM nginx:latest
 
 COPY nginx.conf /etc/nginx/conf.d/

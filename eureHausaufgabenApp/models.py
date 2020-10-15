@@ -24,7 +24,6 @@ class Courses(db.Model):
 
 class Users(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    Email = db.Column(db.String(200))
     Username = db.Column(db.String(200))
     SchoolId = db.Column(db.Integer, ForeignKey(Schools.id))
     Role = db.Column(db.Integer)
