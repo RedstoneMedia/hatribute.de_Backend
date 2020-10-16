@@ -28,7 +28,6 @@ class Users(db.Model):
     SchoolId = db.Column(db.Integer, ForeignKey(Schools.id))
     Role = db.Column(db.Integer)
     Points = db.Column(db.Integer)
-    StayLoggedIn = db.Column(db.Boolean(create_constraint=False))
     HashedPwd = db.Column(db.String(60))
     FirstTimeSignInToken = db.Column(db.String(200))
 
@@ -49,6 +48,7 @@ class Sessions(db.Model):
     UserId = db.Column(db.Integer, ForeignKey(Users.id))
     HashedSessionID = db.Column(db.String(512))
     SessionExpires = db.Column(db.String(200))
+    StayLoggedIn = db.Column(db.Boolean(create_constraint=False))
     Actions = db.Column(db.Integer)
 
 

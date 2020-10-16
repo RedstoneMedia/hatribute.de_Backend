@@ -19,7 +19,7 @@ def login(user_name, password, stay_logged_in):
     if crypto_util.check_pwd(password, original_hash_pwd):
         app.logger.info(f"Right password for user with name : '{user_name}'")
         user.StayLoggedIn = stay_logged_in
-        session, expires, _ = gen_new_session(user)
+        session, expires, _ = gen_new_session(user, stay_logged_in)
         data = {
             'right': True,
             'session': {
@@ -34,7 +34,7 @@ def login(user_name, password, stay_logged_in):
         return {"right": False}, 401
 
 
-def gen_new_session(user: Users, old_session: Sessions=None):
+def gen_new_session(user: Users, stay_logged_in: bool, old_session: Sessions=None):
     app.logger.debug(f"Generating new session")
     if old_session:
         try:
@@ -62,15 +62,15 @@ def gen_new_session(user: Users, old_session: Sessions=None):
         actions = old_session_actions
         pop_session(old_session)
 
-    new_session = Sessions(UserId=user.id, Actions=actions)  # Create new session and inherit UserId and actions
+    new_session = Sessions(UserId=user.id, Actions=actions, StayLoggedIn=stay_logged_in)  # Create new session and inherit UserId and actions
     session_id = crypto_util.random_string(60)
-    expires = save_session(user, new_session, crypto_util.hash_sha512(session_id), expires=app.config["SESSION_EXPIRE_TIME_MINUTES"])
+    expires = save_session(new_session, crypto_util.hash_sha512(session_id), app.config["SESSION_EXPIRE_TIME_MINUTES"], stay_logged_in)
     return session_id, expires, new_session
 
 
-def save_session(user, session, sessionHash, expires):
+def save_session(session, sessionHash, expires, stay_logged_in: bool):
     session.HashedSessionID = sessionHash
-    if not user.StayLoggedIn:
+    if not stay_logged_in:
         session.SessionExpires = str(datetime.now() + timedelta(minutes=expires))
     else:
         session.SessionExpires = str(datetime.now() + timedelta(days=app.config["SESSION_EXPIRE_TIME_STAY_LOGGED_IN_DAYS"]))
@@ -120,7 +120,7 @@ def check_session(session_id):
 
             expires = datetime.strptime(found_session.SessionExpires, '%Y-%m-%d %H:%M:%S.%f')  # Parse session expire date
             now = datetime.now()
-            if now >= expires:  # Check if session expired
+            if now >= expires:  # Check if session expired. Technically not needed, because delete_all_old_sessions() will delete the session before this check
                 pop_session(found_session)
                 app.logger.info(f"Session expired for user : {user.Email}")
                 return None, {"session": {"right": False}}, None
@@ -132,8 +132,8 @@ def check_session(session_id):
                 }
                 register_action(found_session)
                 # Check if session is about to expire and if it is, create a new session and update the expiration date
-                if now >= (expires - timedelta(hours=0, minutes=app.config["SESSION_EXPIRE_TIME_MINUTES"] / 2)) or (user.StayLoggedIn and now >= (expires - (timedelta(days=app.config["SESSION_EXPIRE_TIME_STAY_LOGGED_IN_DAYS"]) - timedelta(minutes=app.config["SESSION_EXPIRE_TIME_MINUTES"] / 2)))):
-                    new_session_id, new_expire_time, new_session = gen_new_session(user, found_session)
+                if now >= (expires - timedelta(hours=0, minutes=app.config["SESSION_EXPIRE_TIME_MINUTES"] / 2)) or (found_session.StayLoggedIn and now >= (expires - (timedelta(days=app.config["SESSION_EXPIRE_TIME_STAY_LOGGED_IN_DAYS"]) - timedelta(minutes=app.config["SESSION_EXPIRE_TIME_MINUTES"] / 2)))):
+                    new_session_id, new_expire_time, new_session = gen_new_session(user, found_session.StayLoggedIn, found_session)
                     data["session"]["session"] = new_session_id
                     data["session"]["expires"] = new_expire_time
                 else:

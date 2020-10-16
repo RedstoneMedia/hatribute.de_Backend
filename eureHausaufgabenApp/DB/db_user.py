@@ -35,14 +35,14 @@ def user_to_dict(user : Users, extended_data=False):
             "points": user.Points,
             "school_id": user.SchoolId,
             "is_active": user.HashedPwd != None,
-            "stay_logged_in": user.StayLoggedIn
+            "stay_logged_in": g.session_db_object.StayLoggedIn
         }
     return  {
         "id" : user.id,
         "name": str(user.Username),
         "role": user.Role,
         "points" : user.Points,
-        "stay_logged_in": user.StayLoggedIn
+        "stay_logged_in": g.session_db_object.StayLoggedIn
     }
 
 def reset_account_for_user(user : Users):
