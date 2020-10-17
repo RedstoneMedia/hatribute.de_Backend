@@ -6,4 +6,4 @@ ADD requirements.txt /app
 
 RUN apt-get update && apt-get install -y gcc && pip install -r requirements.txt && apt-get clean
 
-# docker build -t python_flask_docker_image python_flask_docker_image
+# Run this befor docker-compose up : docker build -t python_flask_docker_image python_flask_docker_image

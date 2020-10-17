@@ -29,7 +29,6 @@ services:
       MYSQL_HOST: "mariadb"
       USE_PRODUCTION_DB: "true"
       TEMP_IMAGE_FOLDER: "temp_homework_files"
-      SETUP_MODE: "true"
     expose:
       - 3182
     volumes:
