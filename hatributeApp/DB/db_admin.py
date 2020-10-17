@@ -1,8 +1,8 @@
 from flask import g
 
-from eureHausaufgabenApp.util import crypto_util
-from eureHausaufgabenApp import db
-from eureHausaufgabenApp.models import Users, Courses
+from hatributeApp.util import crypto_util
+from hatributeApp import db
+from hatributeApp.models import Users, Courses
 from .db_user import reset_account_for_user, generate_new_first_time_sign_in_toke_for_user, setup_user, remove_deactivated_account
 
 
@@ -49,6 +49,20 @@ def write_course_changes(course_changed_data : dict) -> int:
     return 401
 
 
+def write_school_changes(school_changed_data : dict):
+    if g.user.Role >= 3:
+        school_id = school_changed_data["id"]
+        if school_id == None:
+            return 400
+        school_to_modify = db_school.get_school_by_id(school_id) # type: Courses
+
+        if school_name := school_changed_data["name"]:
+            school_to_modify.Name = str(school_name)
+        db.session.commit()
+        return 200
+    return 401
+
+
 def generate_new_token_for_deactivated_user(user_id : int):
     if g.user.Role >= 3:
         user_to_modify = Users.query.filter_by(id=user_id).first()  # type: Users
@@ -73,3 +87,25 @@ def remove_deactivated_user(user_id : int):
     if g.user.Role >= 3:
         return remove_deactivated_account(user_id)
     return 401
+
+
+def get_all_schools():
+    if g.user.Role >= 3:
+        g.data["schools"] = db_school.get_all_schools()
+        return 200
+    return 401
+
+
+def add_school(school_name : str):
+    if g.user.Role >= 3:
+        db_school.add_school(school_name)
+        return 200
+    return 401
+
+def remove_school(school_id : int):
+    if g.user.Role >= 3:
+        db_school.remove_school_by_id(school_id)
+        return 200
+    return 401
+
+from hatributeApp.DB import db_school

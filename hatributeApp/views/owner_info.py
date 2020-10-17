@@ -2,7 +2,7 @@ import os
 import json
 
 from flask import Blueprint, request, g
-from eureHausaufgabenApp.util.decorators import only_json_request
+from hatributeApp.util.decorators import only_json_request
 
 owner_info = Blueprint('owner_info', __name__)
 
@@ -18,4 +18,4 @@ def get_owner_info(data: dict):
 
 
 
-from eureHausaufgabenApp import app
+from hatributeApp import app

@@ -2,8 +2,8 @@ import json
 
 from flask import Blueprint, request, g
 
-from eureHausaufgabenApp.util.decorators import only_with_session
-from eureHausaufgabenApp.DB import db_mod
+from hatributeApp.util.decorators import only_with_session
+from hatributeApp.DB import db_mod
 
 mod_dashboard = Blueprint('mod_dashboard', __name__)
 

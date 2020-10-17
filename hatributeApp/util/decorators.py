@@ -2,8 +2,8 @@ import json
 import traceback
 from flask import request, g
 
-from eureHausaufgabenApp import app
-from eureHausaufgabenApp.DB.db_auth import handel_session_request
+from hatributeApp import app
+from hatributeApp.DB.db_auth import handel_session_request
 
 
 # Decorator : Checks if request is json and then checks if the session is correct. If all of these are true call decorated function

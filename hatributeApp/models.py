@@ -1,7 +1,7 @@
 from sqlalchemy import ForeignKey
 from sqlalchemy.orm import relationship
 
-from eureHausaufgabenApp import db
+from hatributeApp import db
 
 class Schools(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -32,6 +32,8 @@ class Users(db.Model):
     FirstTimeSignInToken = db.Column(db.String(200))
 
     ActiveSessions = relationship("Sessions", uselist=True, backref="user")
+    UserAddedHomework = relationship("HomeworkLists", uselist=True, backref="creator")
+    UserEnteredSubHomework = relationship("SubHomeworkLists", uselist=True, backref="user")
     UserViewedHomework = relationship("UserViewedHomework", uselist=True, backref="user")
     UserCoursesList = relationship("UserCoursesLists", uselist=True, backref="user")
     Reports = relationship("ClassReports", uselist=True, backref="by_user")
@@ -60,7 +62,6 @@ class HomeworkLists(db.Model):
     CreatorId = db.Column(db.Integer, ForeignKey(Users.id))
     CourseId = db.Column(db.Integer, ForeignKey(Courses.id))
 
-    Creator = relationship("Users", foreign_keys='HomeworkLists.CreatorId', uselist=False)
     SubHomework = relationship("SubHomeworkLists", uselist=True, backref="homework_list")
     UserViewedHomework = relationship("UserViewedHomework", uselist=True, backref="homework_list")
     Reports = relationship("ClassReports", uselist=True, backref="homework_list")
@@ -73,7 +74,6 @@ class SubHomeworkLists(db.Model):
     Done = db.Column(db.Boolean(create_constraint=False))
     HomeworkListId = db.Column(db.Integer, ForeignKey(HomeworkLists.id))
 
-    User = relationship("Users", foreign_keys='SubHomeworkLists.UserId', uselist=False)
     Reports = relationship("ClassReports",  uselist=True, backref="sub_homework")
 
 

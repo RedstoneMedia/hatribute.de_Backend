@@ -1,8 +1,8 @@
 from flask import g
 from typing import List
 
-from eureHausaufgabenApp import db, app
-from eureHausaufgabenApp.models import Schools, UserCoursesLists, Courses, HomeworkLists, Users
+from hatributeApp import db, app
+from hatributeApp.models import Schools, UserCoursesLists, Courses, HomeworkLists, Users
 
 
 def get_user_courses_list_list_by_user() -> List[UserCoursesLists]:

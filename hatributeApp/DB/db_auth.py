@@ -1,10 +1,10 @@
-from eureHausaufgabenApp.util import crypto_util
+from hatributeApp.util import crypto_util
 from flask import request, g
 from datetime import datetime
 from datetime import timedelta
 import json
-from eureHausaufgabenApp import db, app
-from eureHausaufgabenApp.models import Users, Sessions
+from hatributeApp import db, app
+from hatributeApp.models import Users, Sessions
 import traceback
 import operator
 from sqlalchemy.orm.exc import ObjectDeletedError

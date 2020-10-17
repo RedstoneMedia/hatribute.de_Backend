@@ -4,17 +4,17 @@ from flask import g
 from datetime import date
 from datetime import datetime
 
-from eureHausaufgabenApp.util import file_util
-from eureHausaufgabenApp.util.crypto_util import random_string
+from hatributeApp.util import file_util
+from hatributeApp.util.crypto_util import random_string
 
-from eureHausaufgabenApp import db, app
-from eureHausaufgabenApp.models import SubHomeworkLists
-from eureHausaufgabenApp.models import HomeworkLists
-from eureHausaufgabenApp.models import Users
-from eureHausaufgabenApp.models import UserViewedHomework
-from eureHausaufgabenApp.models import ClassReports
-from eureHausaufgabenApp.models import UserCoursesLists
-from eureHausaufgabenApp.models import Courses
+from hatributeApp import db, app
+from hatributeApp.models import SubHomeworkLists
+from hatributeApp.models import HomeworkLists
+from hatributeApp.models import Users
+from hatributeApp.models import UserViewedHomework
+from hatributeApp.models import ClassReports
+from hatributeApp.models import UserCoursesLists
+from hatributeApp.models import Courses
 
 
 def check_if_homework_creator(homework):
@@ -140,7 +140,7 @@ def sub_homework_to_dict(sub_homework):
     return {
         "Exercise" : sub_homework.Exercise,
         "Done" : sub_homework.Done,
-        "User" : user_to_dict(sub_homework.User),
+        "User" : user_to_dict(sub_homework.user),
         "id" : sub_homework.id,
         "reported" : has_reported_sub_homework(sub_homework)
     }

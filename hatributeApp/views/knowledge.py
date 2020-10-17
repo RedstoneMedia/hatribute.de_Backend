@@ -2,8 +2,8 @@ import json
 
 from flask import Blueprint, request, g
 
-from eureHausaufgabenApp.util.decorators import only_with_session
-from eureHausaufgabenApp.DB import db_knowledge
+from hatributeApp.util.decorators import only_with_session
+from hatributeApp.DB import db_knowledge
 
 knowledge = Blueprint('knowledge', __name__)
 

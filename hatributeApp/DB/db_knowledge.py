@@ -3,8 +3,8 @@ from sqlalchemy import or_
 from datetime import date
 from datetime import datetime
 
-from eureHausaufgabenApp import db, app
-from eureHausaufgabenApp.models import Users, KnowledgeSources
+from hatributeApp import db, app
+from hatributeApp.models import Users, KnowledgeSources
 
 def knowledge_source_to_dict(knowledge_source):
     result = {

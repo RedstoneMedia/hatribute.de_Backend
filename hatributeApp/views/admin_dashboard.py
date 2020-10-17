@@ -2,9 +2,9 @@ import json
 
 from flask import Blueprint, g
 
-from eureHausaufgabenApp.util.decorators import only_with_session
-from eureHausaufgabenApp.DB import db_admin
-from eureHausaufgabenApp.DB import db_course
+from hatributeApp.util.decorators import only_with_session
+from hatributeApp.DB import db_admin
+from hatributeApp.DB import db_course
 
 admin_dashboard = Blueprint('admin_dashboard', __name__)
 
@@ -61,4 +61,32 @@ def add_course(data : dict):
 @only_with_session
 def remove_course(data : dict):
     error_code = db_course.remove_course(int(data["course_id"]))
+    return json.dumps(g.data), error_code
+
+
+@admin_dashboard.route("/get_all_schools", methods=['POST'])
+@only_with_session
+def get_all_schools(data : dict):
+    error_code = db_admin.get_all_schools()
+    return json.dumps(g.data), error_code
+
+
+@admin_dashboard.route("/write_school_changes", methods=['POST'])
+@only_with_session
+def write_school_changes(data : dict):
+    error_code = db_admin.write_school_changes(data["school_changes"])
+    return json.dumps(g.data), error_code
+
+
+@admin_dashboard.route("/add_school", methods=['POST'])
+@only_with_session
+def add_school(data : dict):
+    error_code = db_admin.add_school(data["school_name"])
+    return json.dumps(g.data), error_code
+
+
+@admin_dashboard.route("/remove_school", methods=['POST'])
+@only_with_session
+def remove_school(data : dict):
+    error_code = db_admin.remove_school(data["school_id"])
     return json.dumps(g.data), error_code

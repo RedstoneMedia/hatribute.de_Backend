@@ -1,11 +1,11 @@
 from flask import Blueprint, request, g
 
-from eureHausaufgabenApp.DB import db_auth, db_user
-from eureHausaufgabenApp import app
+from hatributeApp.DB import db_auth, db_user
+from hatributeApp import app
 import json
 
-from eureHausaufgabenApp.DB.db_auth import handel_session_request
-from eureHausaufgabenApp.util.decorators import only_with_session, only_json_request
+from hatributeApp.DB.db_auth import handel_session_request
+from hatributeApp.util.decorators import only_with_session, only_json_request
 
 authentication = Blueprint('authentication', __name__)
 

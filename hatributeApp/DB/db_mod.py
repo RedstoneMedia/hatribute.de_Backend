@@ -1,12 +1,12 @@
 from flask import g
 from sqlalchemy import and_
 
-from eureHausaufgabenApp import db, app
-from eureHausaufgabenApp.models import ClassReports
-from eureHausaufgabenApp.models import Users
-from eureHausaufgabenApp.models import UserCoursesLists
-from eureHausaufgabenApp.models import SubHomeworkLists
-from eureHausaufgabenApp.models import Courses
+from hatributeApp import db, app
+from hatributeApp.models import ClassReports
+from hatributeApp.models import Users
+from hatributeApp.models import UserCoursesLists
+from hatributeApp.models import SubHomeworkLists
+from hatributeApp.models import Courses
 
 
 def delete_reports(sub_homework: SubHomeworkLists):
@@ -63,7 +63,7 @@ def get_most_important_report(sub_homework: SubHomeworkLists):
 
 def sub_homework_report_execution(sub_homework):
     most_important_report = get_most_important_report(sub_homework)
-    user = get_user_by_id(sub_homework.UserId)
+    user = sub_homework.user
     if most_important_report:
         role = Users.query.filter_by(id=most_important_report.ByUserId).first().Role
         if role > user.Role:

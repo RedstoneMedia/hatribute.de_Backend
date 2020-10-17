@@ -3,8 +3,8 @@ import json
 from flask import g
 from sqlalchemy import and_
 
-from eureHausaufgabenApp import Users, db, app
-from eureHausaufgabenApp.util import crypto_util
+from hatributeApp import Users, db, app
+from hatributeApp.util import crypto_util
 
 
 def get_user_data():
@@ -57,13 +57,13 @@ def reset_account():
 
 
 def remove_deactivated_account(user_id : int):
-    user = get_user_by_id(user_id)
+    user = get_user_by_id(user_id) # type: Users
     if user:
         if user.HashedPwd == None:
             db.session.delete(user)
             db.session.commit()
         else:
-            return 403
+            return 403  # Account is not deactivated
     else:
         return 404
 
@@ -74,17 +74,25 @@ def generate_new_first_time_sign_in_toke_for_user(user : Users):
     return user.FirstTimeSignInToken
 
 
-def setup_user(user_name : str, school_name : str):
+def setup_user(user_name : str, school_name : str, use_g_data=True):
     school = get_school_by_name(school_name)
     if school:
         if Users.query.filter_by(Username=user_name).first() == None:
             new_user = Users(Username=user_name, SchoolId=school.id)
             db.session.add(new_user)
-            g.data["new_first_time_sign_in_token"] = generate_new_first_time_sign_in_toke_for_user(new_user)
-            g.data["new_user_id"] = new_user.id
+            data = {
+                "new_first_time_sign_in_token": generate_new_first_time_sign_in_toke_for_user(new_user),
+                "new_user_id": new_user.id
+            }
+            if use_g_data:
+                g.data = data
+                return 200
+            return 200, data
+        data = {"user_already_exists" : True}
+        if use_g_data:
+            g.data = data
             return 200
-        g.data["user_already_exists"] = True
-        return 200
+        return 200, data
     else:
         return 404
 
@@ -103,7 +111,7 @@ def create_user(user_name, school_name, password, first_time_sign_in_token):
         hashed_password = crypto_util.hash_pwd(password)
         name_and_not_active.HashedPwd = hashed_password
         name_and_not_active.StayLoggedIn = False
-        if name_and_not_active.Role != -1:
+        if name_and_not_active.Role != -1 and name_and_not_active.Role != 4:
             name_and_not_active.Role = 0
             name_and_not_active.Points = 20
         add_default_courses_to_user(name_and_not_active)

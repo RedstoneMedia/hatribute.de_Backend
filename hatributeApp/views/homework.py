@@ -1,11 +1,11 @@
 import json
 
 from flask import Blueprint, request, g
-from eureHausaufgabenApp.DB import db_homework
-from eureHausaufgabenApp.DB import db_mod
-from eureHausaufgabenApp.DB import db_course
+from hatributeApp.DB import db_homework
+from hatributeApp.DB import db_mod
+from hatributeApp.DB import db_course
 
-from eureHausaufgabenApp.util.decorators import only_with_session
+from hatributeApp.util.decorators import only_with_session
 
 homework = Blueprint('homework', __name__)
 

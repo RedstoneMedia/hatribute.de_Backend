@@ -29,7 +29,7 @@ file_logging_handler = RotatingFileHandler(
     encoding="utf-8"
 )
 file_logging_handler.setFormatter(formatter)
-file_logging_handler.setLevel(logging.ERROR)
+file_logging_handler.setLevel(logging.WARN)
 default_handler.setFormatter(formatter)
 
 app = Flask(__name__)
@@ -48,11 +48,11 @@ if "TEMP_IMAGE_FOLDER" in os.environ:
 else:
     app.config["TEMP_IMAGE_FOLDER"] = app.config["DEBUG_TEMP_IMAGE_FOLDER"]
 
-
 db = SQLAlchemy(app)
 CORS(app)
-from .models import Users
+from .models import *
 db.create_all()
+
 from .views.authentication import authentication
 from .views.homework import homework
 from .views.mod_dashboard import mod_dashboard
@@ -62,8 +62,25 @@ from .views.owner_info import owner_info
 app.register_blueprint(authentication)
 app.register_blueprint(homework)
 app.register_blueprint(mod_dashboard)
-app.register_blueprint(knowledge)
+# app.register_blueprint(knowledge) Deactivated for now
 app.register_blueprint(admin_dashboard)
 app.register_blueprint(owner_info)
 
 delete_all_temp_sub_image_folders(app.config["TEMP_IMAGE_FOLDER"], ["img"]) # auto delete temp folders at startup
+
+with app.app_context():
+    from .DB import db_user, db_school
+    if "SETUP_MODE" in os.environ or (not "SETUP_MODE" in os.environ and app.config["DEBUG_SETUP_MODE"]):
+        app.logger.warning("SETUP_MODE is on, if using in production please turn this off after the setup immediately.")
+        db_school.add_school(app.config["SETUP_MODE_ADMIN_SCHOOL_NAME"])
+        result = db_user.setup_user(app.config["SETUP_MODE_ADMIN_USERNAME"], app.config["SETUP_MODE_ADMIN_SCHOOL_NAME"], use_g_data=False)
+        if result[0] == 200:
+            data = result[1]
+            if not "user_already_exists" in data:
+                user = db_user.get_user_by_id(data["new_user_id"]).Role = 4
+                db.session.commit()
+                app.logger.info(f"setup sign in token : {data['new_first_time_sign_in_token']}")
+    else:
+        school = db_school.get_school_by_name(app.config["SETUP_MODE_ADMIN_SCHOOL_NAME"])
+        if school:
+            db_school.remove_school_by_id(school.id)

@@ -1,4 +1,4 @@
-from eureHausaufgabenApp import app
+from hatributeApp import app
 
 
 if __name__ == "__main__":
