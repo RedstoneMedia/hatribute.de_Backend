@@ -1,16 +1,18 @@
-from hatributeApp.util import crypto_util
 from flask import request, g
-from datetime import datetime
-from datetime import timedelta
-import json
-from hatributeApp import db, app
-from hatributeApp.models import Users, Sessions
-import traceback
-import operator
 from sqlalchemy.orm.exc import ObjectDeletedError
 
+import traceback
+import operator
+from datetime import datetime, timedelta
+from typing import Tuple, Union
 
-def login(user_name, password, stay_logged_in):
+from hatributeApp import db, app
+from hatributeApp.util import crypto_util
+from hatributeApp.models import Users, Sessions
+
+
+# Tries to find a matching user with username and password and if it finds one creates a session and sets the session.
+def login(user_name: str, password: str, stay_logged_in: bool):
     user = Users.query.filter_by(Username=user_name).first()
     if user == None:
         app.logger.info(f"Provided user with name : '{user_name}' does not exist")
@@ -34,7 +36,8 @@ def login(user_name, password, stay_logged_in):
         return {"right": False}, 401
 
 
-def gen_new_session(user: Users, stay_logged_in: bool, old_session: Sessions=None):
+# Generates a completely new session or renews a given session.
+def gen_new_session(user: Users, stay_logged_in: bool, old_session: Sessions = None) -> Tuple[int, str, Sessions]:
     app.logger.debug(f"Generating new session")
     if old_session:
         try:
@@ -68,7 +71,8 @@ def gen_new_session(user: Users, stay_logged_in: bool, old_session: Sessions=Non
     return session_id, expires, new_session
 
 
-def save_session(session, sessionHash, expires, stay_logged_in: bool):
+# Saves a session and returns the expiration date
+def save_session(session: Sessions, sessionHash: str, expires: float, stay_logged_in: bool) -> str:
     session.HashedSessionID = sessionHash
     if not stay_logged_in:
         session.SessionExpires = str(datetime.now() + timedelta(minutes=expires))
@@ -80,11 +84,13 @@ def save_session(session, sessionHash, expires, stay_logged_in: bool):
     return session.SessionExpires
 
 
+# Pops the currently used session
 def logout():
     session = Sessions.query.filter_by(id=g.session_db_object.id).first()
     pop_session(session)
 
 
+# Tries to pop all sessions that are over the expiration date.
 def delete_all_old_sessions():
     app.logger.debug(f"Deleting all old sessions")
     sessions = Sessions.query.all()
@@ -98,7 +104,8 @@ def delete_all_old_sessions():
             pass
 
 
-def register_action(session):
+# Adds one to the action count of the specified session.
+def register_action(session: Sessions):
     try:
         session.Actions += 1
         db.session.commit()
@@ -106,7 +113,8 @@ def register_action(session):
         app.logger.error(traceback.format_exc())
 
 
-def check_session(session_id):
+# Uses a session id and determines if it is valid or not + Auto renews session if it is about to expire.
+def check_session(session_id: int) -> Tuple[Union[Users, None], dict, Union[Sessions, None]]:
     delete_all_old_sessions()
 
     # Hash the session id with sha512
@@ -144,6 +152,7 @@ def check_session(session_id):
         return None, {"session": {"right": False}}, None
 
 
+# Removes the specified session.
 def pop_session(session: Sessions):
     # db.session.delete(session)
     # ^ this dose not work so we have to do this but that's stupid
@@ -153,12 +162,14 @@ def pop_session(session: Sessions):
     g.session_db_object = None
 
 
+# Pops all sessions of the specified user.
 def pop_all_user_sessions(user: Users):
     sessions = user.ActiveSessions
     for session in sessions:
         pop_session(session)
 
 
+# Gets session id from data checks if session is valid and sets global context variables.
 def handel_session_request(data: dict):
     if "session" in data:
         session = data["session"]

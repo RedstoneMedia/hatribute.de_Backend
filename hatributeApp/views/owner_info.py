@@ -1,5 +1,4 @@
 import os
-import json
 
 from flask import Blueprint, request, g
 from hatributeApp.util.decorators import only_json_request

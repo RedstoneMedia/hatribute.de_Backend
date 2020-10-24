@@ -1,6 +1,8 @@
 from flask import g
 from sqlalchemy import and_
 
+from typing import List
+
 from hatributeApp import db, app
 from hatributeApp.models import ClassReports
 from hatributeApp.models import Users
@@ -9,6 +11,7 @@ from hatributeApp.models import SubHomeworkLists
 from hatributeApp.models import Courses
 
 
+# Removes reports for the specified sub homework.
 def delete_reports(sub_homework: SubHomeworkLists):
     reports = sub_homework.Reports
     for i in reports:
@@ -16,52 +19,55 @@ def delete_reports(sub_homework: SubHomeworkLists):
     db.session.commit()
 
 
-def sub_homework_report_execution_remove_points_and_delete(report, reportedUser, sub_homework, role):
+# Resets sub homework and faces other actions based on the report type and how often and by whom it has be reported.
+def sub_homework_report_execution_remove_points_and_delete(report: ClassReports, reported_user: Users, sub_homework: SubHomeworkLists, role: int):
     if report.Type == 0:  # wrong content
         if get_report_type_count(report, 0) >= 2 or role >= 2:
             reset_sub_homework(sub_homework)
             delete_reports(sub_homework)
     elif report.Type == 1:  # no homework
         if get_report_type_count(report, 1) >= 4 or role >= 2:
-            reportedUser.Points -= 15
+            reported_user.Points -= 15
             reset_sub_homework(sub_homework)
             delete_reports(sub_homework)
     elif report.Type == 2:  # violence
         if get_report_type_count(report, 2) >= 4 or role >= 2:
-            reportedUser.Points = -999  # instant ban
+            reported_user.Points = -999  # instant ban
             reset_sub_homework(sub_homework)
             delete_reports(sub_homework)
     elif report.Type == 3:  # porn
         if get_report_type_count(report, 3) >= 4 or role >= 2:
-            reportedUser.Points = -999  # instant ban
+            reported_user.Points = -999  # instant ban
             reset_sub_homework(sub_homework)
             delete_reports(sub_homework)
     elif report.Type == 4:  # both violence and porn
         if get_report_type_count(report, 4) >= 4 or role >= 2:
-            reportedUser.Points = -999  # instant ban
+            reported_user.Points = -999  # instant ban
             reset_sub_homework(sub_homework)
             delete_reports(sub_homework)
 
-    if -30 >= reportedUser.Points: # ban user if under or equal to -30 Points
-        reportedUser.Role = -1
-        viewed_homework = get_viewed_homework_by_user(reportedUser)
+    if -30 >= reported_user.Points: # ban user if under or equal to -30 Points
+        reported_user.Role = -1
+        viewed_homework = get_viewed_homework_by_user(reported_user)
         for i in viewed_homework:
             db.session.delete(i)
     db.session.commit()
 
 
-def get_most_important_report(sub_homework: SubHomeworkLists):
-    reports = sub_homework.Reports
-    most_important_reports = None
+# Returns the report from the sub homework, that has the highest report type.
+def get_most_important_report(sub_homework: SubHomeworkLists) -> ClassReports:
+    reports = sub_homework.Reports # type: List[ClassReports]
+    most_important_report = None
     for report in reports:
-        if not most_important_reports:
-            most_important_reports = report
-        elif report.Type > most_important_reports.Type:
-            most_important_reports = report
-    return most_important_reports
+        if most_important_report == None:
+            most_important_report = report
+        elif report.Type > most_important_report.Type:
+            most_important_report = report
+    return most_important_report
 
 
-def sub_homework_report_execution(sub_homework):
+# Faces action for most important report of specified sub homework.
+def sub_homework_report_execution(sub_homework: SubHomeworkLists):
     most_important_report = get_most_important_report(sub_homework)
     user = sub_homework.user
     if most_important_report:
@@ -70,14 +76,15 @@ def sub_homework_report_execution(sub_homework):
             sub_homework_report_execution_remove_points_and_delete(most_important_report, user, sub_homework, role)
 
 
-def report_sub_homework(sub_homework_id, type):
+# Creates a report for the specified sub homework.
+def report_sub_homework(sub_homework_id: int, report_type: int) -> int:
     sub_homework = get_sub_homework_from_id(sub_homework_id)  #type: SubHomeworkLists
     if sub_homework:
         if g.user.Role == -1:  # if user is banned
             return 200 # fuck off
         user_courses = get_user_courses_by_user()
         if user_courses:
-            report = ClassReports(Type=type, ByUserId=g.user.id, CourseId=sub_homework.homework_list.course.id, SubHomeworkId=sub_homework_id)
+            report = ClassReports(Type=report_type, ByUserId=g.user.id, CourseId=sub_homework.homework_list.course.id, SubHomeworkId=sub_homework_id)
             db.session.add(report)
             db.session.commit()
             sub_homework_report_execution(sub_homework)
@@ -86,19 +93,22 @@ def report_sub_homework(sub_homework_id, type):
     return 401
 
 
-def get_report_type_count(report, type):
-    reports = ClassReports.query.filter(and_(ClassReports.Type==type, ClassReports.SubHomeworkId==report.SubHomeworkId))
+# Counts how often a sub homework has been reported for the specified type.
+def get_report_type_count(report: ClassReports, report_type: int) -> int:
+    reports = ClassReports.query.filter(and_(ClassReports.Type==report_type, ClassReports.SubHomeworkId==report.SubHomeworkId))
     return reports.count()
 
 
-def has_reported_sub_homework(sub_homework):
+# Returns if a sub homework has a report referencing it.
+def has_reported_sub_homework(sub_homework: SubHomeworkLists) -> bool:
     report = ClassReports.query.filter(and_(ClassReports.SubHomeworkId == sub_homework.id, ClassReports.ByUserId == g.user.id)).first()
     if report:
         return True
     return False
 
 
-def report_type_to_string(report):
+# Returns string representing the type of the specified report.
+def report_type_to_string(report: ClassReports) -> str:
     if report.Type == 0:
         return "Falsch"
     elif report.Type == 1:
@@ -111,7 +121,8 @@ def report_type_to_string(report):
         return "Gewallt und Pornographie"
 
 
-def get_report_as_dict(report):
+# Returns dict representing the specified report as a dict.
+def get_report_as_dict(report: ClassReports) -> dict:
     report = {
         "type" : report_type_to_string(report),
         "reportCreator" : user_to_dict(get_user_by_id(report.ByUserId)),
@@ -121,13 +132,15 @@ def get_report_as_dict(report):
     return report
 
 
-def get_reports():
-    if g.user.Role < 2:
+# Gets all reports from the current users courses.
+def get_reports() -> int:
+    if g.user.Role < 2: # Only mods and admins can look at the reports.
         return 401
+
     user_courses = get_user_courses_by_user()
     if user_courses:
         reports = []
-        for course in user_courses: #type: Courses
+        for course in user_courses: # type: Courses
             reports.extend(course.Reports)
         reports_dict = []
         for report in reports:
@@ -137,7 +150,8 @@ def get_reports():
     return 401
 
 
-def reset_sub_homework_from_mod(subHomeworkId):
+# Resets sub homework and faces other action if reported user has a lower role then the current user.
+def reset_sub_homework_from_mod(subHomeworkId: int) -> int:
     if not g.user.Role >= 2:
         return 401
     sub_homework = get_sub_homework_from_id(subHomeworkId)
@@ -153,6 +167,7 @@ def reset_sub_homework_from_mod(subHomeworkId):
     return 401
 
 
+# Removes a false report and punishes user who created the report.
 def remove_one_false_report_and_punish_user_that_reported(report : ClassReports):
     user_that_reported = report.by_user #type: Users
     if user_that_reported.Role >= g.user.Role:
@@ -170,7 +185,8 @@ def remove_one_false_report_and_punish_user_that_reported(report : ClassReports)
     db.session.commit()
 
 
-def remove_false_report_from_mod(sub_homework_id):
+# Does some checks, figures out report from the "sub_homework_id" and then calls "remove_one_false_report_and_punish_user_that_reported"
+def remove_false_report_from_mod(sub_homework_id: int) -> int:
     if not g.user.Role >= 2:
         return 401
     sub_homework = get_sub_homework_from_id(sub_homework_id)
@@ -185,12 +201,12 @@ def remove_false_report_from_mod(sub_homework_id):
     return 404
 
 
-def get_users_data():
+# Gets a list of users relevant to the current user.
+def get_users_data() -> int:
     if not g.user.Role >= 2:
         return 401
 
-
-    if (user_courses := get_user_courses_by_user()) and g.user.Role == 2:
+    if (user_courses := get_user_courses_by_user()) and g.user.Role == 2:  # if user is mod only use users that are in the same course as the user
         users = []
         for course in user_courses: #type: Courses
             for usersCourseList in UserCoursesLists.query.filter_by(CourseId=course.id):  #type: UserCoursesLists
@@ -201,7 +217,7 @@ def get_users_data():
                 users_dict_list.append(user_to_dict(user))
         g.data["users"] = users_dict_list
         return 200
-    elif g.user.Role >= 3:
+    elif g.user.Role >= 3: # if user is admin use all users
         users = Users.query.all()
         users_dict_list = []
         for user in users:  # type: Users
@@ -212,10 +228,12 @@ def get_users_data():
     return 403
 
 
-def remove_points(user_id, points):
+# Tries to find a user and remove any number of points from it.
+def remove_points(user_id: int, points : int) -> int:
     if not g.user.Role >= 2:
         return 401
 
+    # Find user to remove points from that is in a courses that the current user has.
     user_to_remove_points_from = None
     if user_courses := get_user_courses_by_user():
         for course in user_courses:  # type: Courses
@@ -223,6 +241,7 @@ def remove_points(user_id, points):
                 if user_courses_list_entry.user.Role < g.user.Role:
                     user_to_remove_points_from = user_courses_list_entry.user
                     break
+
     if not user_to_remove_points_from:
         return 403
     if user_to_remove_points_from.id == g.user.id:
@@ -239,6 +258,7 @@ def remove_points(user_id, points):
     return 200
 
 
+from .db_sub_homework import reset_sub_homework, get_sub_homework_from_id
+from .db_homework import get_viewed_homework_by_user
 from .db_user import user_to_dict, get_user_by_id
-from .db_homework import reset_sub_homework, get_sub_homework_from_id, get_viewed_homework_by_user
 from .db_course import get_user_courses_by_user

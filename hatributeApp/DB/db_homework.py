@@ -1,11 +1,8 @@
-import os
+from typing import Tuple, List
 
 from flask import g
 from datetime import date
 from datetime import datetime
-
-from hatributeApp.util import file_util
-from hatributeApp.util.crypto_util import random_string
 
 from hatributeApp import db, app
 from hatributeApp.models import SubHomeworkLists
@@ -17,13 +14,15 @@ from hatributeApp.models import UserCoursesLists
 from hatributeApp.models import Courses
 
 
-def check_if_homework_creator(homework):
+# Checks if the current user is the creator of the specified homework.
+def check_if_homework_creator(homework: HomeworkLists):
     if g.user.id == homework.CreatorId:
         return True
     return False
 
 
-def get_urgent_level(days_between):
+# Returns how urgent the homework needs to be finished based on the remaining days.
+def get_urgent_level(days_between: int):
     if days_between < 0:
         return -1
     elif days_between == 0:
@@ -38,12 +37,15 @@ def get_urgent_level(days_between):
         return 0
 
 
-def get_due_string(date : date):
+# Returns the formatted date to be displayed in the frontend. It also returns the urgent level
+def get_due_string(date : date) -> Tuple[str, int]:
+    # Users with this role shall be punished by
     if g.user.Role == -1:
         return str(date), 0
+
     now = datetime.now().date()
     weeks_between = date.isocalendar()[1] - now.isocalendar()[1]
-    if weeks_between == 0:
+    if weeks_between == 0: # Dates are not more than 1 week apart.
         days_between = (date - now).days
         urgent_level = get_urgent_level(days_between)
         if -2 <= days_between <= 2:
@@ -58,7 +60,7 @@ def get_due_string(date : date):
             elif days_between == 2:
                 return "Übermorgen", urgent_level
         return "", urgent_level
-    elif weeks_between <= 1:
+    elif weeks_between <= 1: # Dates are more than one week apart.
         days_between = (date - now).days
         day_string = ""
         if weeks_between == 1:
@@ -82,6 +84,7 @@ def get_due_string(date : date):
         return str(date), 0
 
 
+# Removes all past homework that are in the courses of the current user
 def remove_past_homework():
     courses = get_user_courses_by_user()
     for course in courses:
@@ -92,15 +95,8 @@ def remove_past_homework():
                 remove_homework(homework)
 
 
-def remove_sub_homework(sub_homework):
-    sub_folder = "{}-{}".format(sub_homework.HomeworkListId, sub_homework.id)
-    count = file_util.get_image_count_in_sub_folder(sub_folder)
-    if count > 0:
-        file_util.remove_sub_folder(sub_folder)
-    db.session.delete(sub_homework)
-    db.session.commit()
 
-
+# Removes a homework including all sub homework, reports and records that the homework has been viewed.
 def remove_homework(homework: HomeworkLists):
     sub_homeworks = homework.SubHomework
     for sub_homework in sub_homeworks:
@@ -115,6 +111,7 @@ def remove_homework(homework: HomeworkLists):
     db.session.commit()
 
 
+# Converts a homework including all sub homework into a dict.
 def homework_to_dict(homework: HomeworkLists):
     due_string, urgent_level = get_due_string(homework.Due)
     homework_ret = {
@@ -136,21 +133,12 @@ def homework_to_dict(homework: HomeworkLists):
     return homework_ret
 
 
-def sub_homework_to_dict(sub_homework):
-    return {
-        "Exercise" : sub_homework.Exercise,
-        "Done" : sub_homework.Done,
-        "User" : user_to_dict(sub_homework.user),
-        "id" : sub_homework.id,
-        "reported" : has_reported_sub_homework(sub_homework)
-    }
 
-
-def add_homework(exercise, course_id, sub_exercises, due_date):
+# Adds a homework to a specified course.
+def add_homework(exercise: str, course_id: int, sub_exercises: List[str], due_date: str) -> int:
     user_course_list_item = UserCoursesLists.query.filter_by(CourseId=course_id, UserId=g.user.id).first()  # type: UserCoursesLists
     if user_course_list_item != None:
         course = user_course_list_item.course # type: Courses
-        user_school = get_school_by_user()
         due_date = datetime.strptime(due_date, "%Y-%m-%d")
         new_homework_entry = HomeworkLists(Exercise=exercise, DonePercentage=0, CourseId=course.id, Due=due_date, CreatorId=g.user.id)
         db.session.add(new_homework_entry)
@@ -163,50 +151,15 @@ def add_homework(exercise, course_id, sub_exercises, due_date):
         return 401
 
 
-def get_viewed_homework_by_homework_id(homework_id):
+def get_viewed_homework_by_homework_id(homework_id: int) -> UserViewedHomework:
     return UserViewedHomework.query.filter_by(HomeworkListId=homework_id, UserId=g.user.id).first()
 
 
-def get_viewed_homework_by_user(user):
-    return UserViewedHomework.query.filter_by(UserId=user.id)
+def get_viewed_homework_by_user(user: Users) -> List[UserViewedHomework]:
+    return user.UserViewedHomework
 
 
-def get_sub_homework_from_id(sub_homework_id):
-    return SubHomeworkLists.query.filter_by(id=sub_homework_id).first()
-
-
-def register_user_for_sub_homework(sub_homework_id):
-    sub_homework = get_sub_homework_from_id(sub_homework_id)
-    if sub_homework:
-        if not sub_homework.UserId:  # check if no one has registered yet
-            sub_homework.UserId = g.user.id
-            db.session.commit()
-            return 200
-        g.data["already_registered_user"] = user_to_dict(get_user_by_id(sub_homework.UserId))
-        return 403  # someone has registered for this homework already
-    return 401
-
-
-def de_register_user_for_sub_homework(sub_homework_id):
-    sub_homework = get_sub_homework_from_id(sub_homework_id)
-    if sub_homework:
-        if sub_homework.Done:
-            g.user.Points -= get_sub_homework_add_points()
-            db.session.commit()
-        reset_sub_homework(sub_homework)
-        return 200
-    return 401
-
-
-def get_sub_homework_add_points():
-    points = 0
-    if g.user.Role == 0:
-        points = 10
-    elif g.user.Role >= 1:
-        points = 15
-    return points
-
-
+# Updates the done percentage for the specified homework.
 def update_homework_done(homework: HomeworkLists):
     done_count = 0
     items_count = 0
@@ -219,76 +172,31 @@ def update_homework_done(homework: HomeworkLists):
     db.session.commit()
 
 
-def upload_sub_homework(sub_homework_id, files):
-    sub_homework = get_sub_homework_from_id(sub_homework_id)
-    if sub_homework:
-        if len(files) > 10:
-            return 403
-        homework = sub_homework.homework_list
-        file_util.save_images_in_sub_folder(files, "{}-{}".format(sub_homework.HomeworkListId, sub_homework.id))
-        sub_homework.Done = True
-        update_homework_done(homework)
-        g.user.Points += get_sub_homework_add_points()
-        db.session.commit()
-        return 200
-    return 401
 
-
-def view_homework(homework_id, viewed_homework):
-    if g.user.Role == -1:
+# Checks if the current user can view the specified homework.
+def view_homework(homework_id : int, viewed_homework: UserViewedHomework) -> bool:
+    if g.user.Role == -1: # Users with this role shall be punished by
         return False
-    if g.user.Points < 5:
+    if g.user.Points < 5: # User has to little points to view the homework.
         return False
     if g.user.Role < 0:
         return False
 
-    if not viewed_homework:
+    if not viewed_homework: # Homework has not been viewed by that user yet.
+        # Create and add new UserViewedHomework to the database.
         viewed_homework = UserViewedHomework(UserId=g.user.id, HomeworkListId=homework_id)
         db.session.add(viewed_homework)
-        if not g.user.Role >= 2:
-            g.user.Points -= 5
+        if not g.user.Role >= 2:  # Admins and mods should be able to look at all images to see if they contain bad data.
+            g.user.Points -= 5  # Subtract points from user for viewing homework.
         db.session.commit()
     return True
 
 
-def get_sub_homework_images_url(sub_homework_id):
-    sub_homework = get_sub_homework_from_id(sub_homework_id)
-    if sub_homework:
-        viewed_homework = get_viewed_homework_by_homework_id(sub_homework.HomeworkListId)
-        if not view_homework(sub_homework.HomeworkListId, viewed_homework):
-            if not viewed_homework:
-                return 403
-        sub_folder = "{}-{}".format(sub_homework.HomeworkListId, sub_homework.id)
-        random_folder_string = "{0:s}{1:s}".format(sub_folder, random_string(10))
-        copy_to_folder = os.path.join(app.config['TEMP_IMAGE_FOLDER'], random_folder_string)
-        file_util.copy_sub_images(sub_folder, copy_to_folder)
-        image_count_total = file_util.get_image_count_in_sub_folder(sub_folder)
-        file_util.delete_temp_sub_image_folder(max(min(image_count_total/4, 30), app.config["DEL_TEMP_SUB_IMAGES_WAIT_TIME"]), copy_to_folder) # start thread that waits a given amount of seconds and then deletes the temporary folder
-        g.data["images_url"] = "assets/temp_homework_files/{0:s}".format(random_folder_string)
-        g.data["images_total"] = image_count_total
-        return 200
-    return 401
-
-
-def get_sub_homework_base64_images(sub_homework_id):
-    sub_homework = get_sub_homework_from_id(sub_homework_id)
-    if sub_homework:
-        viewed_homework = get_viewed_homework_by_homework_id(sub_homework.HomeworkListId)
-        if not view_homework(sub_homework.HomeworkListId, viewed_homework):
-            if not viewed_homework:
-                return 403
-        sub_folder = "{}-{}".format(sub_homework.HomeworkListId, sub_homework.id)
-        base64_images = file_util.get_images_in_sub_folder_as_base64(sub_folder)
-        g.data["base64_images"] = base64_images
-        g.data["images_total"] = len(base64_images)
-        return 200
-    return 401
-
-
-def delete_homework(homework_id):
+# Deletes a homework based on its id. Does some checks and then calls "remove_homework".
+def delete_homework(homework_id: int) -> int:
     homework = HomeworkLists.query.filter_by(id=homework_id).first()
     if homework:
-        if g.user.Role >= 2:
+        if g.user.Role >= 2: # Mods and admins can always delete
             remove_homework(homework)
             g.data["success"] = True
             return 200
@@ -297,32 +205,21 @@ def delete_homework(homework_id):
             if is_course_id_in_courses(user_courses, homework.CourseId):
                 if check_if_homework_creator(homework):
                     sub_homeworks = homework.SubHomework
+
+                    # Forbid user from deleting homework if anny images have been uploaded.
                     for sub_homework in sub_homeworks:
                         if sub_homework.Done:
                             g.data["success"] = False
                             return 200
+
                     remove_homework(homework)
                     g.data["success"] = True
                     return 200
-                return 401
-            return 401
+                return 403
+            return 403
         return 403
-    return 403
-
-
-def reset_sub_homework(sub_homework):
-    sub_homework.Done = False
-    sub_homework.UserId = None
-    homework = sub_homework.homework_list
-    update_homework_done(homework)
-    sub_folder = "{}-{}".format(sub_homework.HomeworkListId, sub_homework.id)
-    count = file_util.get_image_count_in_sub_folder(sub_folder)
-    if count > 0:
-        file_util.remove_sub_folder(sub_folder)
-    db.session.commit()
-
+    return 400
 
 from .db_course import is_course_id_in_courses, get_user_courses_by_user
-from .db_school import get_school_by_user
-from .db_mod import has_reported_sub_homework, delete_reports
-from .db_user import user_to_dict, get_user_by_id
+from .db_sub_homework import remove_sub_homework, sub_homework_to_dict
+from .db_mod import delete_reports

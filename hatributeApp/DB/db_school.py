@@ -12,19 +12,23 @@ def get_school_by_id(school_id : int) -> Schools:
 def get_school_by_name(school_name : str) -> Schools:
     return Schools.query.filter_by(Name=school_name).first()
 
+# Returns the specified schools name and id in a dict
 def school_to_dict(school : Schools) -> dict:
     return {
         "id" : school.id,
         "name" : school.Name
     }
 
+# Returns a List of dicts representing all schools
 def get_all_schools() -> List[dict]:
     schools = []
     for school in Schools.query.all():
         schools.append(school_to_dict(school))
     return schools
 
-def remove_school_by_id(school_id: int):
+
+# Tries to remove a school. This will remove all courses and users that are bound to that school
+def remove_school_by_id(school_id: int) -> int:
     school = get_school_by_id(school_id)
     if school:
         for user in school.Users: # type: Users
@@ -40,6 +44,8 @@ def remove_school_by_id(school_id: int):
         Schools.query.filter_by(id=school_id).delete(synchronize_session="fetch")
         db.session.commit()
 
+
+# Tries to add a school with a specified name.
 def add_school(school_name: str):
     if get_school_by_name(school_name) == None:
         db.session.add(Schools(Name=school_name))
@@ -47,4 +53,3 @@ def add_school(school_name: str):
 
 
 from hatributeApp.DB.db_user import reset_account_for_user, remove_deactivated_account
-from hatributeApp.DB.db_course import remove_course

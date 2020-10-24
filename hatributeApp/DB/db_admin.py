@@ -1,11 +1,11 @@
 from flask import g
 
-from hatributeApp.util import crypto_util
 from hatributeApp import db
 from hatributeApp.models import Users, Courses
 from .db_user import reset_account_for_user, generate_new_first_time_sign_in_toke_for_user, setup_user, remove_deactivated_account
 
 
+# Writes dict containing changes for the specified user id.
 def write_user_changes(user_changed_data : dict) -> int:
     if g.user.Role >= 3:
         user_id = user_changed_data["id"]
@@ -31,6 +31,7 @@ def write_user_changes(user_changed_data : dict) -> int:
     return 401
 
 
+# Writes dict containing changes for the specified course id.
 def write_course_changes(course_changed_data : dict) -> int:
     if g.user.Role >= 3:
         course_id = course_changed_data["CourseId"]
@@ -49,7 +50,8 @@ def write_course_changes(course_changed_data : dict) -> int:
     return 401
 
 
-def write_school_changes(school_changed_data : dict):
+# Writes dict containing changes for the specified school id.
+def write_school_changes(school_changed_data : dict) -> int:
     if g.user.Role >= 3:
         school_id = school_changed_data["id"]
         if school_id == None:
@@ -63,7 +65,8 @@ def write_school_changes(school_changed_data : dict):
     return 401
 
 
-def generate_new_token_for_deactivated_user(user_id : int):
+# Generates a fresh new first time sign in toke for a deactivated user.
+def generate_new_token_for_deactivated_user(user_id : int) -> int:
     if g.user.Role >= 3:
         user_to_modify = Users.query.filter_by(id=user_id).first()  # type: Users
         if user_to_modify.HashedPwd == None:
@@ -74,35 +77,41 @@ def generate_new_token_for_deactivated_user(user_id : int):
     return 401
 
 
-def setup_new_user(user_name : str, school_name : str):
+# Checks if user is a admin and then sets up the user with the specified name and school name
+def setup_new_user(user_name : str, school_name : str) -> int:
     if g.user.Role >= 3:
-        error_code = setup_user(user_name, school_name)
+        error_code = setup_user(user_name, school_name)[0]
         if error_code == 404:
             return 200
         return error_code
     return 401
 
 
-def remove_deactivated_user(user_id : int):
+# Checks if user is admin and then calls "remove_deactivated_account"
+def remove_deactivated_user(user_id : int) -> int:
     if g.user.Role >= 3:
         return remove_deactivated_account(user_id)
     return 401
 
 
-def get_all_schools():
+# Checks if user is admin and then calls "get_all_schools"
+def get_all_schools() -> int:
     if g.user.Role >= 3:
         g.data["schools"] = db_school.get_all_schools()
         return 200
     return 401
 
 
-def add_school(school_name : str):
+# Checks if user is admin and then calls "add_school"
+def add_school(school_name : str) -> int:
     if g.user.Role >= 3:
         db_school.add_school(school_name)
         return 200
     return 401
 
-def remove_school(school_id : int):
+
+# Checks if user is admin and then calls "remove_school_by_id"
+def remove_school(school_id : int) -> int:
     if g.user.Role >= 3:
         db_school.remove_school_by_id(school_id)
         return 200

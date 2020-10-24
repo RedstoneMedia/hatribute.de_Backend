@@ -1,7 +1,4 @@
 from flask import g
-from sqlalchemy import or_
-from datetime import date
-from datetime import datetime
 
 from hatributeApp import db, app
 from hatributeApp.models import Users, KnowledgeSources

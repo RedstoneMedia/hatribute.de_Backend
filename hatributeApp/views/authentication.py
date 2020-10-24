@@ -39,21 +39,7 @@ def logout(data : dict):
     return json.dumps(g.data), 200
 
 
-@authentication.route("/delete_account", methods=['POST'])
-@only_with_session
-def delete_account(data : dict):
-    db_user.reset_account()
-    return json.dumps(g.data), 200
-
-
 @authentication.route("/check_session", methods=['POST'])
 @only_with_session
 def check_session(data : dict):
-    return json.dumps(g.data), 200
-
-
-@authentication.route("/get_data", methods=['POST'])
-@only_with_session
-def get_data(data : dict):
-    db_user.get_user_data()
     return json.dumps(g.data), 200

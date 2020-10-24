@@ -1,4 +1,5 @@
 import json
+from typing import Tuple, Union
 
 from flask import g
 from sqlalchemy import and_
@@ -6,19 +7,17 @@ from sqlalchemy import and_
 from hatributeApp import Users, db, app
 from hatributeApp.util import crypto_util
 
-
+# Gets the current users data represented as dict
 def get_user_data():
-    user = g.user
-    session_data = g.data
-    session_data["user"] = user_to_dict(user)
-    g.data = session_data
+    g.data["user"] = user_to_dict(g.user)
 
 
 def get_user_by_id(user_id):
     return Users.query.filter_by(id=user_id).first()
 
 
-def user_to_dict(user : Users, extended_data=False):
+# Returns a dict containing some of the attributes of the specified user.
+def user_to_dict(user : Users, extended_data=False) -> dict:
     if user == None:
         return {
             "id" : None,
@@ -45,6 +44,8 @@ def user_to_dict(user : Users, extended_data=False):
         "stay_logged_in": g.session_db_object.StayLoggedIn
     }
 
+
+# Resets a user by setting the password to None and removing all courses from that user
 def reset_account_for_user(user : Users):
     app.logger.info(f"Account is being reset for User with name '{user.Username}'")
     user.HashedPwd = None
@@ -52,11 +53,13 @@ def reset_account_for_user(user : Users):
     remove_all_courses_from_user(user)
 
 
+# Resets the current user
 def reset_account():
     reset_account_for_user(g.user)
 
 
-def remove_deactivated_account(user_id : int):
+# Tries to remove a account, but only if it has no set password.
+def remove_deactivated_account(user_id : int) -> int:
     user = get_user_by_id(user_id) # type: Users
     if user:
         if user.HashedPwd == None:
@@ -68,13 +71,15 @@ def remove_deactivated_account(user_id : int):
         return 404
 
 
+# Generates a 200 long string and sets that as the sign in token.
 def generate_new_first_time_sign_in_toke_for_user(user : Users):
     user.FirstTimeSignInToken = crypto_util.random_string(200)
     db.session.commit()
     return user.FirstTimeSignInToken
 
 
-def setup_user(user_name : str, school_name : str, use_g_data=True):
+# Creates a deactivated user bound to a specific school
+def setup_user(user_name : str, school_name : str, use_g_data=True) -> Tuple[int, Union[dict, None]]:
     school = get_school_by_name(school_name)
     if school:
         if Users.query.filter_by(Username=user_name).first() == None:
@@ -86,18 +91,19 @@ def setup_user(user_name : str, school_name : str, use_g_data=True):
             }
             if use_g_data:
                 g.data = data
-                return 200
+                return 200, None
             return 200, data
         data = {"user_already_exists" : True}
         if use_g_data:
             g.data = data
-            return 200
+            return 200, None
         return 200, data
     else:
-        return 404
+        return 404, None
 
 
-def create_user(user_name, school_name, password, first_time_sign_in_token):
+# Activates a deactivated user.
+def create_user(user_name: str, school_name: str, password: str, first_time_sign_in_token: str) -> Tuple[str, int]:
     school = get_school_by_name(school_name)
     name_and_not_active = Users.query.filter(and_(Users.Username == user_name, Users.HashedPwd == None, Users.FirstTimeSignInToken == first_time_sign_in_token)).first()  # type: Users
 
