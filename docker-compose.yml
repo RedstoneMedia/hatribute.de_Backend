@@ -12,8 +12,11 @@ services:
     ports:
       - 3182:3182
       - 80:80
+      - 443:443
     volumes:
       - "temp_homework_files:/usr/share/nginx/html/assets/temp_homework_files"
+      - "/etc/letsencrypt/live/hatribute.de/fullchain.pem:/etc/letsencrypt/live/hatribute.de/fullchain.pem"
+      - "/etc/letsencrypt/live/hatribute.de/privkey.pem:/etc/letsencrypt/live/hatribute.de/privkey.pem"
 
   flask:
     build: ./
